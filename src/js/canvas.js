@@ -2,6 +2,7 @@ class Canvas {
     constructor(canvas) {
         this.objects = [];
         this.color = "#FFFFFF";
+        this.scale = 1;
         this.frameCounter = 0;
         this.textObject = new CanvasText("", new number2(10, 15));
         this.c = canvas;
@@ -29,6 +30,15 @@ class Canvas {
     SetColor(color) {
         this.color = color;
         this.Render();
+    }
+    SetScale(scale) {
+        this.ctx.scale(1 / this.scale, 1 / this.scale);
+        this.ctx.scale(scale, scale);
+        this.scale = scale;
+        this.Render();
+    }
+    GetScale() {
+        return this.scale;
     }
     Draw() {
         for (let i = 0; i < this.objects.length; i++) {
@@ -67,11 +77,6 @@ class Canvas {
         this.c.height = height;
     }
 }
-var ObjectType;
-(function (ObjectType) {
-    ObjectType[ObjectType["Circle"] = 0] = "Circle";
-    ObjectType[ObjectType["Strut"] = 1] = "Strut";
-})(ObjectType || (ObjectType = {}));
 class Circle {
     constructor(position, radius) {
         this.mass = 1;
@@ -80,19 +85,13 @@ class Circle {
         this.position = position;
         this.radius = radius;
     }
-    SetPosition(position) {
-        this.position = position;
-    }
-    SetVelocity(velocity) {
-        this.velocity = velocity;
-    }
-    AddForce(force, dt) {
-        this.position = new number2(this.position.x + this.velocity.x * dt, this.position.y + this.velocity.y * dt);
-        this.velocity = new number2(this.velocity.x + this.acceleration.x * dt, this.velocity.y + this.acceleration.y * dt);
-        this.acceleration = new number2(force.x / this.mass, force.y / this.mass);
-    }
     Render(ctx) {
         ctx.arc(this.position.x, this.position.y, this.radius, 0, 360);
+    }
+    AddForce(force, dt) {
+        this.position = this.position.Add(this.velocity.ScalarMultiply(dt));
+        this.velocity = this.velocity.Add(this.acceleration.ScalarMultiply(dt));
+        this.acceleration = force.ScalarDivide(this.mass);
     }
 }
 class CanvasText {
@@ -101,7 +100,7 @@ class CanvasText {
         this.position = position;
     }
     Render(ctx) {
-        ctx.strokeText(this.text, this.position.x, this.position.y);
+        ctx.strokeText(this.text, this.position.x, this.position.y, ctx.measureText(this.text).width);
     }
     SetText(text) {
         this.text = text;

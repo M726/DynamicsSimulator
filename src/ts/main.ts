@@ -13,8 +13,9 @@ function init(){
         let mousePos = new number2(
             (e.clientX-boundingClient.left)*(canvas.GetWidth() / boundingClient.width),
             (e.clientY-boundingClient.top)*(canvas.GetHeight() / boundingClient.height),
-        );
-        objects.push(new Circle(new number2(mousePos.x,mousePos.y),randRange(0,10)));
+        ).ScalarDivide(canvas.GetScale());
+        console.log("Click: " + mousePos.toString());
+        objects.push(new Circle(mousePos,randRange(0,10)));
     });
     window.addEventListener("resize", setCanvasSize);
     const reset = elId("resetBtn");
@@ -33,14 +34,24 @@ function init(){
         )});
 
         setCanvasSize();
-    let dt = 1000/1000;
+    let dt = 1000/240;
+
+
     function tick():void{
-        objects.forEach(e => {
-            e.AddForce(new number2((rand()-0.5)/1000,0.001),dt);
-        });
+        //objects.forEach(e=>e.ZeroForceAccumulator());
+        //forceObjects.forEach(e=>e.ApplyForce(ParticleSystem));
+
+
+
+        
+
+        for(let i:number = 0; i < objects.length; i++){
+            objects[i].AddForce(new number2((rand()-0.5)/1000,0.001),dt)
+        }
 
         canvas.SetData(objects);
     }
+
     setInterval(function(){
         tick();
     },dt);
@@ -62,4 +73,8 @@ function rand(){
 }
 function randRange(min:number,max:number){
     return Math.random()*(max-min)+min;
+}
+
+function getMs():number{
+    return performance.now();
 }

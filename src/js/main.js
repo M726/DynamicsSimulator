@@ -7,8 +7,9 @@ function init() {
     canvas = new Canvas(elId("canvas"));
     elId("canvas").addEventListener("click", e => {
         let boundingClient = canvas.GetBoundingClientRect();
-        let mousePos = new number2((e.clientX - boundingClient.left) * (canvas.GetWidth() / boundingClient.width), (e.clientY - boundingClient.top) * (canvas.GetHeight() / boundingClient.height));
-        objects.push(new Circle(new number2(mousePos.x, mousePos.y), randRange(0, 10)));
+        let mousePos = new number2((e.clientX - boundingClient.left) * (canvas.GetWidth() / boundingClient.width), (e.clientY - boundingClient.top) * (canvas.GetHeight() / boundingClient.height)).ScalarDivide(canvas.GetScale());
+        console.log("Click: " + mousePos.toString());
+        objects.push(new Circle(mousePos, randRange(0, 10)));
     });
     window.addEventListener("resize", setCanvasSize);
     const reset = elId("resetBtn");
@@ -20,11 +21,13 @@ function init() {
             objects.push(new Circle(new number2(randRange(0, canvas.GetWidth()), randRange(0, canvas.GetHeight())), randRange(0, 10)));
         });
     setCanvasSize();
-    let dt = 1000 / 1000;
+    let dt = 1000 / 240;
     function tick() {
-        objects.forEach(e => {
-            e.AddForce(new number2((rand() - 0.5) / 1000, 0.001), dt);
-        });
+        //objects.forEach(e=>e.ZeroForceAccumulator());
+        //forceObjects.forEach(e=>e.ApplyForce(ParticleSystem));
+        for (let i = 0; i < objects.length; i++) {
+            objects[i].AddForce(new number2((rand() - 0.5) / 1000, 0.001), dt);
+        }
         canvas.SetData(objects);
     }
     setInterval(function () {
@@ -43,5 +46,8 @@ function rand() {
 }
 function randRange(min, max) {
     return Math.random() * (max - min) + min;
+}
+function getMs() {
+    return performance.now();
 }
 //# sourceMappingURL=main.js.map

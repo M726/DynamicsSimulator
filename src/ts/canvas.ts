@@ -5,6 +5,7 @@ class Canvas{
 
     private objects: Array<CanvasObject> = [];
     private color:string = "#FFFFFF";
+    private scale:number = 1; 
 
     private frameCounter:number = 0;
 
@@ -41,6 +42,16 @@ class Canvas{
     public SetColor(color:string):void{
         this.color=color;
         this.Render();
+    }
+    public SetScale(scale:number):void{
+        this.ctx.scale(1/this.scale,1/this.scale);
+        this.ctx.scale(scale,scale);
+        this.scale = scale;
+
+        this.Render();
+    }
+    public GetScale():number{
+        return this.scale;
     }
 
     private Draw(){
@@ -89,15 +100,10 @@ class Canvas{
 }
 
 
-enum ObjectType{
-    Circle,
-    Strut
-}
-
 interface PhysicalObject extends CanvasObject{
     mass:number;
     velocity:number2;
-    AddForce(force: number2, dt: number);
+    AddForce(force: number2, dt: number):void;
 }
 
 interface CanvasObject{
@@ -105,6 +111,13 @@ interface CanvasObject{
 }
 
 class Circle implements PhysicalObject{
+    Render(ctx:CanvasRenderingContext2D):void{
+        ctx.arc(
+            this.position.x,
+            this.position.y,
+            this.radius,
+            0,360);
+    }
     position : number2;
     radius : number;
 
@@ -117,30 +130,23 @@ class Circle implements PhysicalObject{
         this.radius = radius;
     }
 
-    public SetPosition(position:number2){
-        this.position = position;
-    }
-
-    public SetVelocity(velocity:number2){
-        this.velocity = velocity;
-    }
-
     public AddForce(force: number2, dt:number) {
-        this.position = new number2(this.position.x + this.velocity.x*dt,this.position.y + this.velocity.y*dt);
-        this.velocity = new number2(this.velocity.x + this.acceleration.x*dt,this.velocity.y + this.acceleration.y*dt);
-        this.acceleration = new number2(force.x/this.mass,force.y/this.mass);
+        this.position = this.position.Add(this.velocity.ScalarMultiply(dt));
+        this.velocity = this.velocity.Add(this.acceleration.ScalarMultiply(dt));
+        this.acceleration = force.ScalarDivide(this.mass);
     }
 
-    Render(ctx:CanvasRenderingContext2D):void{
-        ctx.arc(
-            this.position.x,
-            this.position.y,
-            this.radius,
-            0,360);
-    }
 }
 
 class CanvasText implements CanvasObject{
+    Render(ctx:CanvasRenderingContext2D):void{
+        ctx.strokeText(
+            this.text,
+            this.position.x,
+            this.position.y,
+            ctx.measureText(this.text).width);
+    }
+
     text: string;
     position: number2;
 
@@ -149,11 +155,9 @@ class CanvasText implements CanvasObject{
         this.position = position;
     }
 
-    Render(ctx:CanvasRenderingContext2D):void{
-        ctx.strokeText(this.text,this.position.x,this.position.y);
-    }
 
     public SetText(text:string){
         this.text = text;
     }
+
 }
