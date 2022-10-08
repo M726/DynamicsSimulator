@@ -79,19 +79,11 @@ class Canvas {
 }
 class Circle {
     constructor(position, radius) {
-        this.mass = 1;
-        this.velocity = new number2(0, 0);
-        this.acceleration = new number2(0, 0);
         this.position = position;
         this.radius = radius;
     }
     Render(ctx) {
         ctx.arc(this.position.x, this.position.y, this.radius, 0, 360);
-    }
-    AddForce(force, dt) {
-        this.position = this.position.Add(this.velocity.ScalarMultiply(dt));
-        this.velocity = this.velocity.Add(this.acceleration.ScalarMultiply(dt));
-        this.acceleration = force.ScalarDivide(this.mass);
     }
 }
 class CanvasText {

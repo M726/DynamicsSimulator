@@ -99,18 +99,11 @@ class Canvas{
     }
 }
 
-
-interface PhysicalObject extends CanvasObject{
-    mass:number;
-    velocity:number2;
-    AddForce(force: number2, dt: number):void;
-}
-
 interface CanvasObject{
     Render(ctx:CanvasRenderingContext2D):void;
 }
 
-class Circle implements PhysicalObject{
+class Circle{
     Render(ctx:CanvasRenderingContext2D):void{
         ctx.arc(
             this.position.x,
@@ -121,21 +114,10 @@ class Circle implements PhysicalObject{
     position : number2;
     radius : number;
 
-    mass:number = 1;
-    velocity:number2 = new number2(0,0);
-    acceleration:number2 = new number2(0,0);
-
     public constructor(position : number2, radius : number){
         this.position = position;
         this.radius = radius;
     }
-
-    public AddForce(force: number2, dt:number) {
-        this.position = this.position.Add(this.velocity.ScalarMultiply(dt));
-        this.velocity = this.velocity.Add(this.acceleration.ScalarMultiply(dt));
-        this.acceleration = force.ScalarDivide(this.mass);
-    }
-
 }
 
 class CanvasText implements CanvasObject{
