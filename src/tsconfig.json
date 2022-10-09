@@ -2,7 +2,7 @@
     "compileOnSave": true,
     "compilerOptions": {
         "watch": true,
-      "target": "es6",
+      "target": "es2022",
       "module": "commonjs",
       "sourceMap": true,
       "outDir": "./js"

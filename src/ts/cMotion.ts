@@ -1,8 +1,8 @@
-interface force{
+interface Force{
     ApplyForce(ps:ParticleSystem);
 }
 
-class UnaryForce implements force{
+class UnaryForce implements Force{
     forceApplierFunction(p: Particle):number2{
         return new number2(0,0);
     }
@@ -14,7 +14,7 @@ class UnaryForce implements force{
     }
 }
 
-class NAryForce implements force{
+class NAryForce implements Force{
     forceApplierFunction():void{}
 
     ApplyForce(_ps: ParticleSystem) {
@@ -23,7 +23,7 @@ class NAryForce implements force{
 }
 
 class Gravity extends UnaryForce{
-    acceleration:number = 9.81;
+    acceleration:number = -9.81;
 
     constructor(acceleration?:number){
         super();
@@ -31,7 +31,7 @@ class Gravity extends UnaryForce{
     }
 
     forceApplierFunction(p: Particle): number2 {
-        return (new number2(0, -9.81)).ScalarMultiply(p.mass);
+        return (new number2(0, this.acceleration)).ScalarMultiply(p.mass);
     }
 }
 
@@ -81,20 +81,26 @@ class Spring extends NAryForce{
 class Particle{
     position:number2;
     velocity:number2;
-    forceAcc:number2;
     mass:number = 1;
 
-    constructor(x:number,y:number,u:number,v:number);
-    constructor(position:number2, velocity:number2);
-    constructor(){
-        this.forceAcc = new number2(0,0);
+    forceAcc:Array<number2>;
+    
+    forceUpdated:boolean = true;
+    forceCurrent:number2 = new number2(0,0);
 
-        if(arguments.length==4){
-            this.position = new number2(arguments[0],arguments[1]);
-            this.velocity = new number2(arguments[2],arguments[3]);
-        }else{
+    constructor(x:number,y:number,u:number,v:number, mass:number);
+    constructor(position:number2, velocity:number2, mass:number);
+    constructor(){
+        this.forceAcc = new Array<number2>();
+
+        if(typeOf(arguments[0]) == 'number2'){
             this.position = arguments[0];
             this.velocity = arguments[1];
+            this.mass = arguments[2];
+        }else{
+            this.position = new number2(arguments[0],arguments[1]);
+            this.velocity = new number2(arguments[2],arguments[3]);
+            this.mass = arguments[4];
         }
     }
 
@@ -103,25 +109,128 @@ class Particle{
     }
 
     AddForce(force:number2):void{
-        this.forceAcc = this.forceAcc.Add(force);
+        this.forceUpdated = false;
+        this.forceAcc.push(force);
     }
     ClearForces():void{
-        this.forceAcc.set(0,0);
+        this.forceAcc= [];
+    }
+    GetForceTotal(){
+        if(this.forceUpdated) return this.forceCurrent;
+        this.UpdateForceTotal();
+        return this.forceCurrent;
+    }
+    
+    SetForceTotal(total:number2){
+        this.forceCurrent = total;
+    }
+    UpdateForceTotal(){
+        this.forceCurrent = this.forceAcc.reduce((accumulator:number2, current) => {
+            return accumulator.Add(current);
+          },new number2(0,0));
+        this.forceUpdated = true;
     }
 }
 
 class ParticleSystem{
     dimension:number = 2; //2D
     particles:Array<Particle> = [];
-    forces:Array<force> = [];
+    forces:Array<Force> = [];
+    clock:number = 0;
 
-    GetPhaseSpaceDimension(){
-        //2*n*dimension
-        return 2*this.dimension*this.particles.length;
-    }
+    solver:ODESolver = new EulerODESolver();
 
     GetParticles():Array<Particle>{
         return this.particles;
+    }
+    GetForces():Array<Force>{
+        return this.forces;
+    }
+     
+    AddParticle(particle:Particle):void{
+        this.particles.push(particle);
+    }
+
+    AddForce(force:Force):void{
+        this.forces.push(force);
+    }
+
+    ClearForces():void{
+        this.forEach(e => {
+            e.ClearForces();
+        });
+    }
+
+    ComputeForces():void{
+        this.forces.forEach(e => {
+            e.ApplyForce(this);
+        });
+    }
+
+    ComputeConstraintForces():void{
+        for(let i = 0; i < this.particles.length-1; i++){
+            //Find Collisions with other Particles
+            for(let j = i+1; j < this.particles.length; j++){
+                if(this.particles[i].position.Subtract(this.particles[j].position).Length() < 
+                    (this.particles[i].mass+this.particles[j].mass)){
+                    //Collision Found
+                    //let f:number2 = this.particles[i]
+                }  
+            }
+        }
+    }
+
+    GetPhaseSpaceDimension():number{
+        //2*n*dimension
+        return 4*this.particles.length;
+    }
+
+    GetStateVector():Array<number>{
+        let r = new Array<number>(this.GetPhaseSpaceDimension());
+        for(let i:number = 0; i < this.particles.length; i++){
+            r[4*i] = this.particles[i].position.x;
+            r[4*i+1] = this.particles[i].position.y;
+            r[4*i+2] = this.particles[i].velocity.x;
+            r[4*i+3] = this.particles[i].velocity.y;
+        }
+        return r;
+    }
+    SetStateVector(r:Array<number>):void{
+        for(let i:number = 0; i < this.particles.length; i++){
+            this.particles[i].position.x = r[4*i];
+            this.particles[i].position.y = r[4*i+1];
+            this.particles[i].velocity.x = r[4*i+2];
+            this.particles[i].velocity.y = r[4*i+3];
+        }
+    }
+
+    GetParticleDerivatives():Array<number>{
+        this.ClearForces();
+        this.ComputeForces();
+
+        let r = new Array<number>(this.GetPhaseSpaceDimension());
+        for(let i:number = 0; i < this.particles.length; i++){
+            r[4*i] = this.particles[i].velocity.x;
+            r[4*i+1] = this.particles[i].velocity.y;
+            r[4*i+2] = this.particles[i].GetForceTotal().x/this.particles[i].mass;
+            r[4*i+3] = this.particles[i].GetForceTotal().y/this.particles[i].mass;
+        }
+        return r;
+    }
+
+
+    RunTimeStep(dt:number){
+        this.ClearForces;
+        this.ComputeForces();
+
+        this.SetStateVector(
+            this.solver.Solve(
+                this.GetPhaseSpaceDimension(),
+                this.GetStateVector(),
+                this.GetParticleDerivatives(),
+                dt
+            )
+        );
     }
 
     forEach(callbackfn: (e: Particle) => void) {
@@ -129,34 +238,20 @@ class ParticleSystem{
             callbackfn(this.particles[i]);
         }
     }
-    
-    AddParticle(particle:Particle):void;
-    AddParticle(position:number2, velocity:number2):void;
-    AddParticle(a:number2|Particle, b?:number2):void{
-        if(typeOf(a) === 'Particle'){
-            this.particles.push(<Particle>a);
-            return
-        }
-        this.particles.push(new Particle(<number2>a, b));
-    }
-
-    AddForce(force:force):void;
-    AddForce(force:force):void{
-        this.forces.push(force);
-    }
-
-    ClearForces(){
-        this.forEach(e => {
-            e.ClearForces();
-        });
-    }
-
-    ComputeForces(){
-        this.forces.forEach(e => {
-            e.ApplyForce(this);
-        });
-    }
 }
 
+interface ODESolver{
+    Solve(dim:number, stateVector:Array<number>, derivatives:Array<number>, dt:number):Array<number>;
+}
 
+class EulerODESolver implements ODESolver{
+    Solve(dim:number, stateVector:Array<number>, derivatives:Array<number>, dt:number):Array<number>{
+        let result = new Array<number>(stateVector.length);
+        
+        for(let i = 0; i < dim; i++){
+            result[i] = stateVector[i] + derivatives[i] * dt;
+        }
 
+        return result;
+    }
+}

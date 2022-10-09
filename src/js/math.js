@@ -1,4 +1,6 @@
 class number2 {
+    x;
+    y;
     constructor(x, y) {
         this.x = x;
         this.y = y;
@@ -33,6 +35,9 @@ class number2 {
     }
 }
 class number3 {
+    x;
+    y;
+    z;
     constructor(x, y, z) {
         this.x = x;
         this.y = y;

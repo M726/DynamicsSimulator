@@ -3,36 +3,16 @@ window.addEventListener('load', function () {
 });
 
 let canvas:Canvas;
+let particleSystem:ParticleSystem;
 
 function init(){
     //Particle System init
-
-    //New Particle System
-    let particleSystem = new ParticleSystem();
-
-    //Define particles
-    let pA = new Particle(20,30,0,0);
-    let pB = new Particle(new number2(90,70),new number2(0,0));
-
-    //Add Particles to System
-    particleSystem.AddParticle(pA);
-    particleSystem.AddParticle(pB);
-
-    //Add Forces to System
-    particleSystem.AddForce(new Gravity());
-    particleSystem.AddForce(new ViscousDrag());
-    particleSystem.AddForce(new Spring(pA,pB,0.2,15));
-
-
-
-
-
-    
-
-
+    particleSystem = new ParticleSystem();
     canvas = new Canvas(<HTMLCanvasElement> elId("canvas"));
-    setCanvasSize(canvas);
-    window.addEventListener("resize", e=>setCanvasSize(canvas));
+    let canvasRenderAPI:CanvasRenderAPI = new CanvasRenderAPI(canvas,particleSystem);
+
+    canvas.SetDimensions(window.innerHeight,window.innerWidth);
+    window.addEventListener("resize", e=>canvas.SetDimensions(window.innerHeight,window.innerWidth));
 
     elId("canvas").addEventListener("click",e=>{
         let boundingClient = canvas.GetBoundingClientRect();
@@ -46,23 +26,35 @@ function init(){
     const reset = elId("resetBtn");
     if(reset != null) reset.addEventListener("click",e=>{canvas.Reset()});
 
-
+ 
     
-    let canvasRenderAPI:CanvasRenderAPI = new CanvasRenderAPI(canvas,particleSystem);
+    
+    //Define particles
+    let pA = new Particle(canvas.GetPxWidth()/2,canvas.GetPxHeight()/2,0,0, 5);
+    let pB = new Particle(100,270,0,0, 1);
+    let pC = new Particle(200,270,0,0, 3);
 
+    //Add Particles to System
+    particleSystem.AddParticle(pA);
+    particleSystem.AddParticle(pB);
+    particleSystem.AddParticle(pC);
 
-    let dt = 1000/2400;
+    //Add Forces to System
+    particleSystem.AddForce(new Gravity(0));
+    particleSystem.AddForce(new ViscousDrag(0.02));
+    particleSystem.AddForce(new Spring(pA,pB,0.007,250));
+    particleSystem.AddForce(new Spring(pA,pC,0.001,350));
+    particleSystem.AddForce(new Spring(pB,pC,0.01,200));
+
+    let dt = 1000/800;
 
 
     function tick():void{
 
-        //Clear Force Accumulators
-        particleSystem.ClearForces();
-
-        //Compute Forces
-        particleSystem.ComputeForces();
+        particleSystem.RunTimeStep(dt);
         
         canvasRenderAPI.UpdateParticleData();
+        canvasRenderAPI.UpdateForceData();
     }
 
     setInterval(function(){
@@ -72,11 +64,6 @@ function init(){
 }
 
 
-function setCanvasSize(canvas:Canvas){
-    console.log("Set Canvas Size");
-    canvas.SetHeight(window.innerHeight);
-    canvas.SetWidth(window.innerWidth);
-}
 
 
 function elId(tag:string){
