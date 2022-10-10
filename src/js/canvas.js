@@ -10,7 +10,7 @@ class Canvas {
     scale = 1;
     offset = new number2(0, 0);
     frameCounter = 1;
-    textObject = new CanvasText("", new number2(10, 30));
+    textObject = new CanvasText("", new number2(10, 25));
     constructor(canvas) {
         this.c = canvas;
         this.ctx = canvas.getContext("2d");
@@ -56,14 +56,15 @@ class Canvas {
         this.DrawBackground();
     }
     DrawObjectUI() {
-        let a = new CanvasLine(new number2(0, this.GetHeightScaled()), new number2(0, -this.GetHeightScaled()));
-        this.DrawCanvasObject(a);
-        let b = new CanvasLine(new number2(this.GetWidthScaled(), 0), new number2(-this.GetWidthScaled(), 0));
-        this.DrawCanvasObject(b);
     }
     DrawUI() {
-        this.textObject.SetText(this.frameCounter.toString());
+        this.textObject.SetText("Frame " + this.frameCounter);
         this.textObject.RenderUI(this.canvasProperties);
+    }
+    DrawCanvasObjectUI(object) {
+        this.Path();
+        object.RenderUI(this.canvasProperties);
+        this.Stroke();
     }
     DrawObjects() {
         this.objects.forEach(e => {
@@ -196,12 +197,12 @@ class CanvasText {
     }
     RenderObject(canvasProperties) {
         canvasProperties.ctx.fillStyle = "#000000";
-        canvasProperties.ctx.font = "30px Calibri";
+        canvasProperties.ctx.font = "20px Calibri";
         canvasProperties.ctx.fillText(this.text, canvasProperties.TransformObjectToCanvasX(this.position.x), canvasProperties.TransformObjectToCanvasY(this.position.y));
     }
     RenderUI(canvasProperties) {
         canvasProperties.ctx.fillStyle = "#000000";
-        canvasProperties.ctx.font = "30px Calibri";
+        canvasProperties.ctx.font = "20px Calibri";
         canvasProperties.ctx.fillText(this.text, this.position.x, this.position.y);
     }
     SetText(text) {

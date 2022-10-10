@@ -31,7 +31,7 @@ class Gravity extends UnaryForce{
     }
 
     forceApplierFunction(p: Particle): number2 {
-        return (new number2(0, this.acceleration)).ScalarMultiply(p.massKg);
+        return (new number2(0, -this.acceleration)).ScalarMultiply(p.massKg);
     }
 }
 

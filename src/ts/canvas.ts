@@ -15,7 +15,7 @@ class Canvas{
 
     private frameCounter:number = 1;
 
-    private textObject = new CanvasText("",new number2(10,30));
+    private textObject = new CanvasText("",new number2(10,25));
 
     public constructor(canvas:HTMLCanvasElement){
         this.c = canvas;
@@ -72,22 +72,19 @@ class Canvas{
     }
 
     private DrawObjectUI(){
-        let a = new CanvasLine(
-            new number2(0,this.GetHeightScaled()),
-            new number2(0,-this.GetHeightScaled()));
-        this.DrawCanvasObject(a);
 
-        let b = new CanvasLine(
-            new number2(this.GetWidthScaled(), 0),
-            new number2(-this.GetWidthScaled(), 0));
-        this.DrawCanvasObject(b);
     }
 
     private DrawUI(){
-        this.textObject.SetText(this.frameCounter.toString());
+        this.textObject.SetText("Frame " + this.frameCounter);
         this.textObject.RenderUI(this.canvasProperties);
     }
 
+    private DrawCanvasObjectUI(object:CanvasObject){
+        this.Path();
+        object.RenderUI(this.canvasProperties);
+        this.Stroke();
+    }
     private DrawObjects(){
         this.objects.forEach(e=>{
             this.DrawCanvasObject(e);
@@ -262,7 +259,7 @@ class CanvasText implements CanvasObject{
     }
     RenderObject(canvasProperties: CanvasProperties):void{
         canvasProperties.ctx.fillStyle = "#000000";
-        canvasProperties.ctx.font="30px Calibri";
+        canvasProperties.ctx.font="20px Calibri";
         canvasProperties.ctx.fillText(
             this.text,
             canvasProperties.TransformObjectToCanvasX(this.position.x),
@@ -270,7 +267,7 @@ class CanvasText implements CanvasObject{
     }
     RenderUI(canvasProperties: CanvasProperties): void {
         canvasProperties.ctx.fillStyle = "#000000";
-        canvasProperties.ctx.font="30px Calibri";
+        canvasProperties.ctx.font="20px Calibri";
         canvasProperties.ctx.fillText(
             this.text,
             this.position.x,

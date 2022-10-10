@@ -3,8 +3,9 @@ class CanvasRenderAPI{
     ps:ParticleSystem;
     p:Array<Particle>;
 
-    showForceVectors:boolean = true;
+    showForceVectors:boolean = false;
     showParticles:boolean = true;
+    showForces:boolean = true;
     
     constructor(canvas:Canvas, ps:ParticleSystem){
         this.canvas = canvas;
@@ -25,7 +26,15 @@ class CanvasRenderAPI{
             let c:CanvasObject[] = particles.map(e=>new CanvasCircle(e.position,e.massKg));
             data = data.concat(c);
         }
-
+        if(this.showForces){
+            let forces = this.ps.GetForces();
+            forces.forEach(force => {
+                if(typeOf(force) == "Spring"){
+                    let s = <Spring>force;
+                    data.push(new CanvasLine(s.pA.position,s.pB.position));
+                }
+            });
+        }
         this.canvas.SetParticleData(data);
     }
 

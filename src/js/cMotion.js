@@ -22,7 +22,7 @@ class Gravity extends UnaryForce {
             this.acceleration = acceleration;
     }
     forceApplierFunction(p) {
-        return (new number2(0, this.acceleration)).ScalarMultiply(p.massKg);
+        return (new number2(0, -this.acceleration)).ScalarMultiply(p.massKg);
     }
 }
 class ViscousDrag extends UnaryForce {
