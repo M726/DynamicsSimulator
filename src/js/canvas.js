@@ -4,21 +4,32 @@ class Canvas {
     canvasProperties;
     objects = [];
     color = "#FFFFFF";
+    drawObjectUI = true;
+    drawObjects = true;
+    drawUI = true;
     scale = 1;
-    frameCounter = 0;
+    offset = new number2(0, 0);
+    frameCounter = 1;
     textObject = new CanvasText("", new number2(10, 30));
     constructor(canvas) {
         this.c = canvas;
         this.ctx = canvas.getContext("2d");
+        this.canvasProperties = new CanvasProperties();
+        this.canvasProperties.ctx = this.ctx;
+        this.RenderLoop();
+    }
+    RenderLoop() {
+        window.requestAnimationFrame(e => { this.RenderLoop(); });
         this.Render();
     }
     UpdateCanvasProperties() {
-        this.canvasProperties = {
-            ctx: this.ctx,
-            width: this.GetPxWidth(),
-            height: this.GetPxHeight(),
-            scale: this.scale
-        };
+        this.canvasProperties.width = this.GetWidthScaled();
+        this.canvasProperties.height = this.GetHeightScaled();
+        this.canvasProperties.offset = this.GetOffsetScaled();
+        this.canvasProperties.scale = this.scale;
+    }
+    GetCanvasProperties() {
+        return this.canvasProperties;
     }
     SetParticleData(data) {
         this.objects = data;
@@ -26,37 +37,43 @@ class Canvas {
     Reset() {
         this.objects = [];
         this.color = "#FFFFFF";
-        this.Render();
     }
     Render() {
         this.UpdateCanvasProperties();
-        this.frameCounter++;
-        this.textObject.SetText(this.frameCounter.toString());
-        window.requestAnimationFrame(e => { this.Render(); });
         this.Clear();
-        this.Draw();
+        if (this.drawObjectUI) {
+            this.DrawObjectUI();
+        }
+        if (this.drawObjects) {
+            this.DrawObjects();
+        }
+        if (this.drawUI) {
+            this.DrawUI();
+        }
+        this.frameCounter++;
     }
     Clear() {
         this.DrawBackground();
     }
-    SetColor(color) {
-        this.color = color;
-        this.Render();
+    DrawObjectUI() {
+        let a = new CanvasLine(new number2(0, this.GetHeightScaled()), new number2(0, -this.GetHeightScaled()));
+        this.DrawCanvasObject(a);
+        let b = new CanvasLine(new number2(this.GetWidthScaled(), 0), new number2(-this.GetWidthScaled(), 0));
+        this.DrawCanvasObject(b);
     }
-    SetScale(scale) {
-        this.scale = scale;
-        this.Render();
+    DrawUI() {
+        this.textObject.SetText(this.frameCounter.toString());
+        this.textObject.RenderUI(this.canvasProperties);
     }
-    GetScale() {
-        return this.scale;
+    DrawObjects() {
+        this.objects.forEach(e => {
+            this.DrawCanvasObject(e);
+        });
     }
-    Draw() {
-        for (let i = 0; i < this.objects.length; i++) {
-            this.Path();
-            this.objects[i].Render(this.canvasProperties);
-            this.Stroke();
-        }
-        this.textObject.Render(this.canvasProperties);
+    DrawCanvasObject(object) {
+        this.Path();
+        object.RenderObject(this.canvasProperties);
+        this.Stroke();
     }
     Path() {
         this.ctx.beginPath();
@@ -68,69 +85,124 @@ class Canvas {
         this.ctx.fillStyle = this.color;
         this.ctx.fillRect(0, 0, this.c.width, this.c.height);
     }
+    SetColor(color) {
+        this.color = color;
+    }
+    SetScale(scale) {
+        this.scale = scale;
+    }
+    GetScale() {
+        return this.scale;
+    }
     GetFrameNumber() {
         return this.frameCounter;
     }
-    SetDimensions(height, width) {
-        this.SetHeight(height);
-        this.SetWidth(width);
-        this.Render();
+    SetDimensionsPx(height, width) {
+        this.SetHeightPx(height);
+        this.SetWidthPx(width);
     }
-    GetWidth() {
+    GetWidthPx() {
         return this.c.width;
     }
-    GetHeight() {
+    GetHeightPx() {
         return this.c.height;
     }
-    GetPxWidth() {
+    GetWidthScaled() {
         return this.c.width / this.scale;
     }
-    GetPxHeight() {
+    GetHeightScaled() {
         return this.c.height / this.scale;
+    }
+    GetOffsetScaled() {
+        return this.offset.ScalarDivide(this.scale);
+    }
+    SetOffsetScaled(offset) {
+        this.offset = offset.ScalarMultiply(this.scale);
+    }
+    GetOffsetPx() {
+        return this.offset;
+    }
+    SetOffsetPx(offset) {
+        this.offset = offset;
     }
     GetBoundingClientRect() {
         return this.c.getBoundingClientRect();
     }
-    SetWidth(width) {
+    SetWidthPx(width) {
         this.c.width = width;
     }
-    SetHeight(height) {
+    SetHeightPx(height) {
         this.c.height = height;
     }
 }
 class CanvasProperties {
     width;
     height;
+    offset;
     scale;
-    get ctx() {
-        return this.ctx;
+    ctx;
+    Line(pointA, pointB) {
+        this.ctx.moveTo(pointA.x, pointA.y);
+        this.ctx.lineTo(pointB.x, pointB.y);
     }
-    set ctx(value) {
-        this.ctx;
+    Circle(center, radius) {
+        this.ctx.arc(center.x, center.y, radius, 0, 360);
+    }
+    TransformObjectToCanvas(objectCoordinates) {
+        return new number2(this.TransformObjectToCanvasX(objectCoordinates.x), this.TransformObjectToCanvasY(objectCoordinates.y));
+    }
+    TransformObjectToCanvasX(x) {
+        return this.scale * (this.width / 2 + (x + this.offset.x));
+    }
+    TransformObjectToCanvasY(y) {
+        return this.scale * (this.height / 2 - (y + this.offset.y));
+    }
+    TransformCanvasToObject(canvasCoordinates) {
+        return new number2(this.TransformCanvasToObjectX(canvasCoordinates.x), this.TransformCanvasToObjectY(canvasCoordinates.y));
+    }
+    TransformCanvasToObjectX(x) {
+        return x / this.scale - this.width / 2 - this.offset.x;
+    }
+    TransformCanvasToObjectY(y) {
+        return -y / this.scale + this.height / 2 - this.offset.y;
+    }
+    LineObjectToCanvas(pA, pB) {
+        this.Line(this.TransformObjectToCanvas(pA), this.TransformObjectToCanvas(pB));
+    }
+    CircleObjectToCanvas(center, radius) {
+        this.Circle(this.TransformObjectToCanvas(center), this.scale * (radius));
     }
 }
-class Circle {
-    Render(canvasProperties) {
-        canvasProperties.ctx.arc(canvasProperties.scale * (this.position.x), canvasProperties.scale * (canvasProperties.height - this.position.y), canvasProperties.scale * (this.radius), 0, 360);
-    }
+class CanvasCircle {
     position;
     radius;
     constructor(position, radius) {
         this.position = position;
         this.radius = radius;
     }
+    RenderObject(canvasProperties) {
+        canvasProperties.CircleObjectToCanvas(this.position, this.radius);
+    }
+    RenderUI(canvasProperties) {
+        canvasProperties.Circle(this.position, this.radius);
+    }
 }
 class CanvasText {
-    Render(canvasProperties) {
-        canvasProperties.ctx.fillStyle = "#000000";
-        canvasProperties.ctx.font = "30px Calibri";
-        canvasProperties.ctx.fillText(this.text, this.position.x, this.position.y);
-    }
     text;
     position;
     constructor(text, position) {
         this.text = text;
         this.position = position;
+    }
+    RenderObject(canvasProperties) {
+        canvasProperties.ctx.fillStyle = "#000000";
+        canvasProperties.ctx.font = "30px Calibri";
+        canvasProperties.ctx.fillText(this.text, canvasProperties.TransformObjectToCanvasX(this.position.x), canvasProperties.TransformObjectToCanvasY(this.position.y));
+    }
+    RenderUI(canvasProperties) {
+        canvasProperties.ctx.fillStyle = "#000000";
+        canvasProperties.ctx.font = "30px Calibri";
+        canvasProperties.ctx.fillText(this.text, this.position.x, this.position.y);
     }
     SetText(text) {
         this.text = text;
@@ -139,15 +211,29 @@ class CanvasText {
 class CanvasVector {
     origin;
     direction;
-    point2;
     constructor(origin, direction) {
         this.origin = origin;
         this.direction = direction;
     }
-    Render(canvasProperties) {
-        this.point2 = this.origin.Add(this.direction);
-        canvasProperties.ctx.moveTo(canvasProperties.scale * this.origin.x, canvasProperties.scale * (canvasProperties.height - this.origin.y));
-        canvasProperties.ctx.lineTo(canvasProperties.scale * this.point2.x, canvasProperties.scale * (canvasProperties.height - this.point2.y));
+    RenderObject(canvasProperties) {
+        canvasProperties.LineObjectToCanvas(this.origin, this.origin.Add(this.direction));
+    }
+    RenderUI(canvasProperties) {
+        canvasProperties.Line(this.origin, this.origin.Add(this.direction));
+    }
+}
+class CanvasLine {
+    origin;
+    point2;
+    constructor(origin, point2) {
+        this.origin = origin;
+        this.point2 = point2;
+    }
+    RenderObject(canvasProperties) {
+        canvasProperties.LineObjectToCanvas(this.origin, this.point2);
+    }
+    RenderUI(canvasProperties) {
+        canvasProperties.Line(this.origin, this.point2);
     }
 }
 //# sourceMappingURL=canvas.js.map

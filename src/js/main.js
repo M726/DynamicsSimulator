@@ -3,47 +3,49 @@ window.addEventListener('load', function () {
 });
 let canvas;
 let particleSystem;
+let canvasRenderAPI;
 function init() {
-    //Particle System init
     particleSystem = new ParticleSystem();
-    canvas = new Canvas(elId("canvas"));
-    let canvasRenderAPI = new CanvasRenderAPI(canvas, particleSystem);
-    canvas.SetDimensions(window.innerHeight, window.innerWidth);
-    window.addEventListener("resize", e => canvas.SetDimensions(window.innerHeight, window.innerWidth));
-    elId("canvas").addEventListener("click", e => {
-        let boundingClient = canvas.GetBoundingClientRect();
-        let mousePos = new number2((e.clientX - boundingClient.left) * (canvas.GetWidth() / boundingClient.width), (e.clientY - boundingClient.top) * (canvas.GetHeight() / boundingClient.height)).ScalarDivide(canvas.GetScale());
-        console.log("Click: " + mousePos.toString());
-        //objects.push(new Circle(mousePos,randRange(5,20)));
-    });
-    const reset = elId("resetBtn");
-    if (reset != null)
-        reset.addEventListener("click", e => { canvas.Reset(); });
+    canvas = new Canvas(element("canvas"));
+    canvasRenderAPI = new CanvasRenderAPI(canvas, particleSystem);
+    canvas.SetDimensionsPx(window.innerHeight, window.innerWidth);
+    window.addEventListener("resize", e => canvas.SetDimensionsPx(window.innerHeight, window.innerWidth));
+    canvas.SetScale(1000);
     //Define particles
-    let pA = new Particle(canvas.GetPxWidth() / 2, canvas.GetPxHeight() / 2, 0, 0, 5);
-    let pB = new Particle(100, 270, 0, 0, 1);
-    let pC = new Particle(200, 270, 0, 0, 3);
+    let pA = new Particle(0.3, 0.2, -0.1, -0.1, 0.0075);
+    let pB = new Particle(0.33, .25, -0.1, 0, 0.01);
+    let pC = new Particle(0.01, 0.01, 0.1, 0, 0.01);
+    let pD = new Particle(0, 0, 0, 0, 0.01);
     //Add Particles to System
     particleSystem.AddParticle(pA);
     particleSystem.AddParticle(pB);
     particleSystem.AddParticle(pC);
+    particleSystem.AddParticle(pD);
     //Add Forces to System
     particleSystem.AddForce(new Gravity(0));
-    particleSystem.AddForce(new ViscousDrag(0.02));
-    particleSystem.AddForce(new Spring(pA, pB, 0.007, 250));
-    particleSystem.AddForce(new Spring(pA, pC, 0.001, 350));
-    particleSystem.AddForce(new Spring(pB, pC, 0.01, 200));
-    let dt = 1000 / 800;
+    particleSystem.AddForce(new ViscousDrag(.0005));
+    particleSystem.AddForce(new Spring(pA, pB, 0.07, 0.1));
+    particleSystem.AddForce(new Spring(pA, pC, 0.01, 0.05));
+    particleSystem.AddForce(new Spring(pB, pC, 0.01, 0.07));
+    let dt = 10;
     function tick() {
-        particleSystem.RunTimeStep(dt);
-        canvasRenderAPI.UpdateParticleData();
-        canvasRenderAPI.UpdateForceData();
+        particleSystem.RunTimeStep(dt / 1000);
+        canvasRenderAPI.UpdateData();
     }
     setInterval(function () {
         tick();
     }, dt);
+    element("canvas").addEventListener("click", e => {
+        let boundingClient = canvas.GetBoundingClientRect();
+        let mousePos = new number2((e.clientX - boundingClient.left) * (canvas.GetWidthPx() / boundingClient.width), (e.clientY - boundingClient.top) * (canvas.GetHeightPx() / boundingClient.height));
+        mousePos = canvas.GetCanvasProperties().TransformCanvasToObject(mousePos);
+        console.log("Click: " + mousePos.toString());
+    });
+    const reset = element("resetBtn");
+    if (reset != null)
+        reset.addEventListener("click", e => { canvas.Reset(); });
 }
-function elId(tag) {
+function element(tag) {
     return document.getElementById(tag);
 }
 function rand() {

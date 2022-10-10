@@ -22,15 +22,15 @@ class Gravity extends UnaryForce {
             this.acceleration = acceleration;
     }
     forceApplierFunction(p) {
-        return (new number2(0, this.acceleration)).ScalarMultiply(p.mass);
+        return (new number2(0, this.acceleration)).ScalarMultiply(p.massKg);
     }
 }
 class ViscousDrag extends UnaryForce {
     kConstant = 0.01;
-    constructor(kConstant) {
+    constructor(kConstNewtonSecondPerMeter2) {
         super();
-        if (kConstant !== undefined)
-            this.kConstant = kConstant;
+        if (kConstNewtonSecondPerMeter2 !== undefined)
+            this.kConstant = kConstNewtonSecondPerMeter2;
     }
     forceApplierFunction(p) {
         return p.velocity.ScalarMultiply(-this.kConstant);
@@ -42,12 +42,12 @@ class Spring extends NAryForce {
     restLength;
     kConst;
     dConst = 0.01;
-    constructor(pA, pB, springConstant, restLength, dampening) {
+    constructor(pA, pB, kConstNewtonPerMeter, restLength, dampening) {
         super();
         this.pA = pA;
         this.pB = pB;
         this.restLength = restLength;
-        this.kConst = springConstant;
+        this.kConst = kConstNewtonPerMeter;
         if (dampening !== undefined)
             this.dConst = dampening;
     }
@@ -62,7 +62,7 @@ class Spring extends NAryForce {
 class Particle {
     position;
     velocity;
-    mass = 1;
+    massKg = 1;
     forceAcc;
     forceUpdated = true;
     forceCurrent = new number2(0, 0);
@@ -71,12 +71,12 @@ class Particle {
         if (typeOf(arguments[0]) == 'number2') {
             this.position = arguments[0];
             this.velocity = arguments[1];
-            this.mass = arguments[2];
+            this.massKg = arguments[2];
         }
         else {
             this.position = new number2(arguments[0], arguments[1]);
             this.velocity = new number2(arguments[2], arguments[3]);
-            this.mass = arguments[4];
+            this.massKg = arguments[4];
         }
     }
     toString() {
@@ -111,17 +111,17 @@ class ParticleSystem {
     forces = [];
     clock = 0;
     solver = new EulerODESolver();
-    GetParticles() {
-        return this.particles;
-    }
-    GetForces() {
-        return this.forces;
-    }
     AddParticle(particle) {
         this.particles.push(particle);
     }
+    GetParticles() {
+        return this.particles;
+    }
     AddForce(force) {
         this.forces.push(force);
+    }
+    GetForces() {
+        return this.forces;
     }
     ClearForces() {
         this.forEach(e => {
@@ -137,10 +137,10 @@ class ParticleSystem {
         for (let i = 0; i < this.particles.length - 1; i++) {
             //Find Collisions with other Particles
             for (let j = i + 1; j < this.particles.length; j++) {
-                if (this.particles[i].position.Subtract(this.particles[j].position).Length() <
-                    (this.particles[i].mass + this.particles[j].mass)) {
+                if (this.collisionCheck(this.particles[i], this.particles[j])) {
+                    //console.log("Collision: " + this.particles[i].toString() + ", " + this.particles[j].toString())
                     //Collision Found
-                    //let f:number2 = this.particles[i]
+                    //coefficientOfRestitution = delta_v_f/delta_v_i
                 }
             }
         }
@@ -174,20 +174,26 @@ class ParticleSystem {
         for (let i = 0; i < this.particles.length; i++) {
             r[4 * i] = this.particles[i].velocity.x;
             r[4 * i + 1] = this.particles[i].velocity.y;
-            r[4 * i + 2] = this.particles[i].GetForceTotal().x / this.particles[i].mass;
-            r[4 * i + 3] = this.particles[i].GetForceTotal().y / this.particles[i].mass;
+            r[4 * i + 2] = this.particles[i].GetForceTotal().x / this.particles[i].massKg;
+            r[4 * i + 3] = this.particles[i].GetForceTotal().y / this.particles[i].massKg;
         }
         return r;
     }
     RunTimeStep(dt) {
         this.ClearForces;
         this.ComputeForces();
+        this.ComputeConstraintForces();
         this.SetStateVector(this.solver.Solve(this.GetPhaseSpaceDimension(), this.GetStateVector(), this.GetParticleDerivatives(), dt));
+        this.clock += dt;
     }
     forEach(callbackfn) {
         for (let i = 0; i < this.particles.length; i++) {
             callbackfn(this.particles[i]);
         }
+    }
+    collisionCheck(pA, pB) {
+        return pA.position.Subtract(pB.position).Length() <
+            (pA.massKg + pB.massKg);
     }
 }
 class EulerODESolver {

@@ -5,26 +5,39 @@ class Canvas{
     private canvasProperties : CanvasProperties;
 
     private objects: Array<CanvasObject> = [];
-    private color:string = "#FFFFFF";
-    private scale:number = 1; 
 
-    private frameCounter:number = 0;
+    private color:string = "#FFFFFF";
+    private drawObjectUI:boolean = true;
+    private drawObjects:boolean = true;
+    private drawUI:boolean = true;
+    private scale:number = 1; 
+    private offset:number2 = new number2(0,0); 
+
+    private frameCounter:number = 1;
 
     private textObject = new CanvasText("",new number2(10,30));
 
     public constructor(canvas:HTMLCanvasElement){
         this.c = canvas;
         this.ctx = canvas.getContext("2d");
+        this.canvasProperties = new CanvasProperties();
+        this.canvasProperties.ctx = this.ctx;
 
+        this.RenderLoop();
+    }
+    public RenderLoop(){
+        window.requestAnimationFrame(e=>{this.RenderLoop()});
         this.Render();
     }
+
     public UpdateCanvasProperties(){
-        this.canvasProperties = {
-            ctx: this.ctx,
-            width: this.GetPxWidth(),
-            height: this.GetPxHeight(),
-            scale: this.scale
-        }
+        this.canvasProperties.width = this.GetWidthScaled();
+        this.canvasProperties.height = this.GetHeightScaled();
+        this.canvasProperties.offset = this.GetOffsetScaled();
+        this.canvasProperties.scale = this.scale
+    }
+    public GetCanvasProperties():CanvasProperties{
+        return this.canvasProperties;
     }
 
     public SetParticleData(data:Array<CanvasObject>){
@@ -34,43 +47,57 @@ class Canvas{
     public Reset():void{
         this.objects = [];
         this.color = "#FFFFFF";
-        this.Render();
     }
 
     public Render():void{
         this.UpdateCanvasProperties();
-        this.frameCounter++;
-        this.textObject.SetText(this.frameCounter.toString());
 
-        window.requestAnimationFrame(e=>{this.Render()});
         this.Clear();
-        this.Draw();
+        if(this.drawObjectUI){
+            this.DrawObjectUI();
+        }
+        if(this.drawObjects){
+            this.DrawObjects();
+        }
+        if(this.drawUI){
+            this.DrawUI();
+        }
+
+
+        this.frameCounter++;
     }
 
     public Clear():void{
         this.DrawBackground();
     }
 
-    public SetColor(color:string):void{
-        this.color=color;
-        this.Render();
-    }
-    public SetScale(scale:number):void{
-        this.scale = scale;
+    private DrawObjectUI(){
+        let a = new CanvasLine(
+            new number2(0,this.GetHeightScaled()),
+            new number2(0,-this.GetHeightScaled()));
+        this.DrawCanvasObject(a);
 
-        this.Render();
-    }
-    public GetScale():number{
-        return this.scale;
+        let b = new CanvasLine(
+            new number2(this.GetWidthScaled(), 0),
+            new number2(-this.GetWidthScaled(), 0));
+        this.DrawCanvasObject(b);
     }
 
-    private Draw(){
-        for(let i = 0; i<this.objects.length; i++){
-            this.Path();
-            this.objects[i].Render(this.canvasProperties);
-            this.Stroke();
-        }
-        this.textObject.Render(this.canvasProperties);
+    private DrawUI(){
+        this.textObject.SetText(this.frameCounter.toString());
+        this.textObject.RenderUI(this.canvasProperties);
+    }
+
+    private DrawObjects(){
+        this.objects.forEach(e=>{
+            this.DrawCanvasObject(e);
+        });
+    }
+
+    private DrawCanvasObject(object:CanvasObject){
+        this.Path();
+        object.RenderObject(this.canvasProperties);
+        this.Stroke();
     }
 
     private Path():void{
@@ -85,37 +112,59 @@ class Canvas{
         this.ctx.fillRect(0,0,this.c.width,this.c.height);
     }
 
+    public SetColor(color:string):void{
+        this.color=color;
+    }
+    public SetScale(scale:number):void{
+        this.scale = scale;
+    }
+    public GetScale():number{
+        return this.scale;
+    }
     public GetFrameNumber():number{
         return this.frameCounter;
     }
 
-    public SetDimensions(height: number, width: number) {
-        this.SetHeight(height);
-        this.SetWidth(width);
-        this.Render();
+    public SetDimensionsPx(height: number, width: number) {
+        this.SetHeightPx(height);
+        this.SetWidthPx(width);
 
     }
-    public GetWidth():number{
+    public GetWidthPx():number{
         return this.c.width;
     }
-    public GetHeight():number{
+    public GetHeightPx():number{
         return this.c.height;
     }
-    public GetPxWidth():number{
+    public GetWidthScaled():number{
         return this.c.width/this.scale;
     }
-    public GetPxHeight():number{
+    public GetHeightScaled():number{
         return this.c.height/this.scale;
+    }
+
+    
+    public GetOffsetScaled():number2{
+        return this.offset.ScalarDivide(this.scale);
+    }
+    public SetOffsetScaled(offset:number2):void{
+        this.offset = offset.ScalarMultiply(this.scale)
+    }
+    public GetOffsetPx():number2{
+        return this.offset;
+    }
+    public SetOffsetPx(offset:number2):void{
+        this.offset = offset;
     }
 
     public GetBoundingClientRect(){
         return this.c.getBoundingClientRect();
     }
 
-    public SetWidth(width:number):void{
+    public SetWidthPx(width:number):void{
         this.c.width = width;
     }
-    public SetHeight(height:number):void{
+    public SetHeightPx(height:number):void{
         this.c.height = height;
     }
 }
@@ -124,28 +173,69 @@ class Canvas{
 class CanvasProperties{
     width:number;
     height:number;
+    offset:number2;
     scale:number;
+    ctx:CanvasRenderingContext2D;
 
-    get ctx():CanvasRenderingContext2D{
-        return this.ctx;
+    Line(pointA:number2, pointB:number2){
+        this.ctx.moveTo(pointA.x,pointA.y);
+        this.ctx.lineTo(pointB.x,pointB.y);
     }
-    set ctx(value: CanvasRenderingContext2D){
-        this.ctx;
+
+    Circle(center:number2,radius:number){
+        this.ctx.arc(
+            center.x,
+            center.y,
+            radius,
+            0,360);
+    }
+
+    TransformObjectToCanvas(objectCoordinates:number2):number2{
+        return new number2(
+            this.TransformObjectToCanvasX(objectCoordinates.x),
+            this.TransformObjectToCanvasY(objectCoordinates.y));
+    }
+
+    TransformObjectToCanvasX(x:number):number{
+        return this.scale * (this.width/2 + (x + this.offset.x));
+    }
+
+    TransformObjectToCanvasY(y:number):number{
+        return this.scale * (this.height/2 - (y + this.offset.y));
+    }
+
+    TransformCanvasToObject(canvasCoordinates:number2):number2{
+        return new number2(
+            this.TransformCanvasToObjectX(canvasCoordinates.x),
+            this.TransformCanvasToObjectY(canvasCoordinates.y));
+    }
+    TransformCanvasToObjectX(x:number):number{
+        return x/this.scale - this.width/2 - this.offset.x;
+    }
+    TransformCanvasToObjectY(y:number):number{
+        return -y/this.scale + this.height/2 - this.offset.y;
+    }
+
+    LineObjectToCanvas(pA:number2, pB:number2){
+        this.Line(
+            this.TransformObjectToCanvas(pA),
+            this.TransformObjectToCanvas(pB));
+    }
+
+    CircleObjectToCanvas(center:number2,radius:number){
+        this.Circle(
+            this.TransformObjectToCanvas(center),
+            this.scale * (radius)
+        );
     }
 }
 
 interface CanvasObject{
-    Render(canvasProperties: CanvasProperties):void;
+    RenderObject(canvasProperties: CanvasProperties):void;
+    RenderUI(canvasProperties: CanvasProperties):void;
 }
 
-class Circle implements CanvasObject{
-    Render(canvasProperties:CanvasProperties):void{
-        canvasProperties.ctx.arc(
-            canvasProperties.scale * (this.position.x),
-            canvasProperties.scale * (canvasProperties.height-this.position.y),
-            canvasProperties.scale * (this.radius),
-            0,360);
-    }
+class CanvasCircle implements CanvasObject{
     position : number2;
     radius : number;
 
@@ -153,24 +243,38 @@ class Circle implements CanvasObject{
         this.position = position;
         this.radius = radius;
     }
+
+    RenderObject(canvasProperties:CanvasProperties):void{
+        canvasProperties.CircleObjectToCanvas(this.position,this.radius);
+    }
+    RenderUI(canvasProperties: CanvasProperties): void {
+        canvasProperties.Circle(this.position,this.radius);
+    }
 } 
 
 class CanvasText implements CanvasObject{
-    Render(canvasProperties):void{
-        canvasProperties.ctx.fillStyle = "#000000";
-        canvasProperties.ctx.font="30px Calibri";
-        canvasProperties.ctx.fillText(
-            this.text,
-            this.position.x,
-            this.position.y);
-    }
-
     text: string;
     position: number2;
 
     constructor(text:string, position:number2){
         this.text = text;
         this.position = position;
+    }
+    RenderObject(canvasProperties: CanvasProperties):void{
+        canvasProperties.ctx.fillStyle = "#000000";
+        canvasProperties.ctx.font="30px Calibri";
+        canvasProperties.ctx.fillText(
+            this.text,
+            canvasProperties.TransformObjectToCanvasX(this.position.x),
+            canvasProperties.TransformObjectToCanvasY(this.position.y));
+    }
+    RenderUI(canvasProperties: CanvasProperties): void {
+        canvasProperties.ctx.fillStyle = "#000000";
+        canvasProperties.ctx.font="30px Calibri";
+        canvasProperties.ctx.fillText(
+            this.text,
+            this.position.x,
+            this.position.y);
     }
 
     public SetText(text:string){
@@ -183,22 +287,33 @@ class CanvasVector implements CanvasObject{
     origin:number2;
     direction:number2;
 
-    point2:number2;
-
     constructor(origin:number2, direction:number2){
         this.origin = origin;
         this.direction = direction;
     }
 
-    Render(canvasProperties: CanvasProperties): void {
-
-        this.point2 = this.origin.Add(this.direction);
-        canvasProperties.ctx.moveTo(
-            canvasProperties.scale * this.origin.x,
-            canvasProperties.scale * (canvasProperties.height-this.origin.y));
-        canvasProperties.ctx.lineTo(
-            canvasProperties.scale * this.point2.x,
-            canvasProperties.scale * (canvasProperties.height-this.point2.y));
+    RenderObject(canvasProperties: CanvasProperties): void {
+        canvasProperties.LineObjectToCanvas(this.origin, this.origin.Add(this.direction));
+    }
+    RenderUI(canvasProperties: CanvasProperties): void {
+        canvasProperties.Line(this.origin, this.origin.Add(this.direction));
     }
 
+}
+
+class CanvasLine implements CanvasObject{
+    origin:number2;
+    point2:number2;
+
+    constructor(origin:number2, point2:number2){
+        this.origin = origin;
+        this.point2 = point2;
+    }
+
+    RenderObject(canvasProperties: CanvasProperties): void {
+        canvasProperties.LineObjectToCanvas(this.origin, this.point2);
+    }
+    RenderUI(canvasProperties: CanvasProperties): void {
+        canvasProperties.Line(this.origin, this.point2);
+    }
 }
