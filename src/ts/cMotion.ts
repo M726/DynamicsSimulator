@@ -88,6 +88,8 @@ class Particle{
     forceUpdated:boolean = true;
     forceCurrent:number2 = new number2(0,0);
 
+    lockPosition = false;
+
     constructor(x:number,y:number,u:number,v:number, massKg:number);
     constructor(position:number2, velocity:number2, massKg:number);
     constructor(){
@@ -130,6 +132,33 @@ class Particle{
           },new number2(0,0));
         this.forceUpdated = true;
     }
+
+    LockPosition(){
+        this.lockPosition = true;
+        this.velocity.set(0,0);
+    }
+    UnlockPosition(){
+        this.lockPosition = false;
+    }
+    IsLocked():boolean{
+        return this.lockPosition;
+    }
+
+    GetPosition():number2{
+        return this.position;
+    }
+    SetPosition(x:number2){
+        if(this.lockPosition) return;
+        this.position = x;
+    }
+    GetVelocity():number2{
+        return this.velocity;
+    }
+    SetVelocity(x:number2){
+        if(this.lockPosition) return;
+        this.velocity = x;
+    }
+
 }
 
 class ParticleSystem{
@@ -147,7 +176,22 @@ class ParticleSystem{
     GetParticles():Array<Particle>{
         return this.particles;
     }
+    FindClosestParticle(position:number2):Particle{
+        let returnParticle = this.particles[0];
+        let dist = this.particles[0].position.Subtract(position).Length();
 
+        for(let i = 0; i < this.particles.length; i++){
+            let d = this.GetDistanceToParticle(this.particles[i],position);
+            if(d < dist) {
+                dist = d;
+                returnParticle = this.particles[i];
+            }
+        }
+        return returnParticle;
+    }
+    GetDistanceToParticle(particle:Particle, point:number2):number{
+        return particle.position.Subtract(point).Length();
+    }
     AddForce(force:Force):void{
         this.forces.push(force);
     }
@@ -182,39 +226,33 @@ class ParticleSystem{
 
     GetPhaseSpaceDimension():number{
         //2*n*dimension
-        return 4*this.particles.length;
+        return 2*this.particles.length;
     }
 
-    GetStateVector():Array<number>{
-        let r = new Array<number>(this.GetPhaseSpaceDimension());
+    GetStateVector():Array<number2>{
+        let r = new Array<number2>(this.GetPhaseSpaceDimension());
         for(let i:number = 0; i < this.particles.length; i++){
-            r[4*i] = this.particles[i].position.x;
-            r[4*i+1] = this.particles[i].position.y;
-            r[4*i+2] = this.particles[i].velocity.x;
-            r[4*i+3] = this.particles[i].velocity.y;
+            r[2*i] = this.particles[i].GetPosition();
+            r[2*i+1] = this.particles[i].GetVelocity();
         }
         return r;
     }
 
-    SetStateVector(r:Array<number>):void{
+    SetStateVector(r:Array<number2>):void{
         for(let i:number = 0; i < this.particles.length; i++){
-            this.particles[i].position.x = r[4*i];
-            this.particles[i].position.y = r[4*i+1];
-            this.particles[i].velocity.x = r[4*i+2];
-            this.particles[i].velocity.y = r[4*i+3];
+            this.particles[i].SetPosition(r[2*i]);
+            this.particles[i].SetVelocity(r[2*i+1]);
         }
     }
 
-    GetParticleDerivatives():Array<number>{
+    GetParticleDerivatives():Array<number2>{
         this.ClearForces();
         this.ComputeForces();
 
-        let r = new Array<number>(this.GetPhaseSpaceDimension());
+        let r = new Array<number2>(this.GetPhaseSpaceDimension());
         for(let i:number = 0; i < this.particles.length; i++){
-            r[4*i] = this.particles[i].velocity.x;
-            r[4*i+1] = this.particles[i].velocity.y;
-            r[4*i+2] = this.particles[i].GetForceTotal().x/this.particles[i].massKg;
-            r[4*i+3] = this.particles[i].GetForceTotal().y/this.particles[i].massKg;
+            r[2*i] = this.particles[i].GetVelocity();
+            r[2*i+1] = this.particles[i].GetForceTotal().ScalarDivide(this.particles[i].massKg);
         }
         return r;
     }
@@ -248,15 +286,15 @@ class ParticleSystem{
 }
 
 interface ODESolver{
-    Solve(dim:number, stateVector:Array<number>, derivatives:Array<number>, dt:number):Array<number>;
+    Solve(dim:number, stateVector:Array<number2>, derivatives:Array<number2>, dt:number):Array<number2>;
 }
 
 class EulerODESolver implements ODESolver{
-    Solve(dim:number, stateVector:Array<number>, derivatives:Array<number>, dt:number):Array<number>{
-        let result = new Array<number>(stateVector.length);
+    Solve(dim:number, stateVector:Array<number2>, derivatives:Array<number2>, dt:number):Array<number2>{
+        let result = new Array<number2>(stateVector.length);
         
         for(let i = 0; i < dim; i++){
-            result[i] = stateVector[i] + derivatives[i] * dt;
+            result[i] = stateVector[i].Add(derivatives[i].ScalarMultiply(dt));
         }
 
         return result;

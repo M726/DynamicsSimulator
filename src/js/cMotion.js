@@ -66,6 +66,7 @@ class Particle {
     forceAcc;
     forceUpdated = true;
     forceCurrent = new number2(0, 0);
+    lockPosition = false;
     constructor() {
         this.forceAcc = new Array();
         if (typeOf(arguments[0]) == 'number2') {
@@ -104,6 +105,32 @@ class Particle {
         }, new number2(0, 0));
         this.forceUpdated = true;
     }
+    LockPosition() {
+        this.lockPosition = true;
+        this.velocity.set(0, 0);
+    }
+    UnlockPosition() {
+        this.lockPosition = false;
+    }
+    IsLocked() {
+        return this.lockPosition;
+    }
+    GetPosition() {
+        return this.position;
+    }
+    SetPosition(x) {
+        if (this.lockPosition)
+            return;
+        this.position = x;
+    }
+    GetVelocity() {
+        return this.velocity;
+    }
+    SetVelocity(x) {
+        if (this.lockPosition)
+            return;
+        this.velocity = x;
+    }
 }
 class ParticleSystem {
     dimension = 2; //2D
@@ -116,6 +143,21 @@ class ParticleSystem {
     }
     GetParticles() {
         return this.particles;
+    }
+    FindClosestParticle(position) {
+        let returnParticle = this.particles[0];
+        let dist = this.particles[0].position.Subtract(position).Length();
+        for (let i = 0; i < this.particles.length; i++) {
+            let d = this.GetDistanceToParticle(this.particles[i], position);
+            if (d < dist) {
+                dist = d;
+                returnParticle = this.particles[i];
+            }
+        }
+        return returnParticle;
+    }
+    GetDistanceToParticle(particle, point) {
+        return particle.position.Subtract(point).Length();
     }
     AddForce(force) {
         this.forces.push(force);
@@ -147,24 +189,20 @@ class ParticleSystem {
     }
     GetPhaseSpaceDimension() {
         //2*n*dimension
-        return 4 * this.particles.length;
+        return 2 * this.particles.length;
     }
     GetStateVector() {
         let r = new Array(this.GetPhaseSpaceDimension());
         for (let i = 0; i < this.particles.length; i++) {
-            r[4 * i] = this.particles[i].position.x;
-            r[4 * i + 1] = this.particles[i].position.y;
-            r[4 * i + 2] = this.particles[i].velocity.x;
-            r[4 * i + 3] = this.particles[i].velocity.y;
+            r[2 * i] = this.particles[i].GetPosition();
+            r[2 * i + 1] = this.particles[i].GetVelocity();
         }
         return r;
     }
     SetStateVector(r) {
         for (let i = 0; i < this.particles.length; i++) {
-            this.particles[i].position.x = r[4 * i];
-            this.particles[i].position.y = r[4 * i + 1];
-            this.particles[i].velocity.x = r[4 * i + 2];
-            this.particles[i].velocity.y = r[4 * i + 3];
+            this.particles[i].SetPosition(r[2 * i]);
+            this.particles[i].SetVelocity(r[2 * i + 1]);
         }
     }
     GetParticleDerivatives() {
@@ -172,10 +210,8 @@ class ParticleSystem {
         this.ComputeForces();
         let r = new Array(this.GetPhaseSpaceDimension());
         for (let i = 0; i < this.particles.length; i++) {
-            r[4 * i] = this.particles[i].velocity.x;
-            r[4 * i + 1] = this.particles[i].velocity.y;
-            r[4 * i + 2] = this.particles[i].GetForceTotal().x / this.particles[i].massKg;
-            r[4 * i + 3] = this.particles[i].GetForceTotal().y / this.particles[i].massKg;
+            r[2 * i] = this.particles[i].GetVelocity();
+            r[2 * i + 1] = this.particles[i].GetForceTotal().ScalarDivide(this.particles[i].massKg);
         }
         return r;
     }
@@ -200,7 +236,7 @@ class EulerODESolver {
     Solve(dim, stateVector, derivatives, dt) {
         let result = new Array(stateVector.length);
         for (let i = 0; i < dim; i++) {
-            result[i] = stateVector[i] + derivatives[i] * dt;
+            result[i] = stateVector[i].Add(derivatives[i].ScalarMultiply(dt));
         }
         return result;
     }

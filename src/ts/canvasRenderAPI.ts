@@ -11,7 +11,7 @@ class CanvasRenderAPI{
         this.canvas = canvas;
         this.ps = ps;
     }
-
+    
     public UpdateData():void{ 
         let particles:Array<Particle> = this.ps.GetParticles();
         let data:Array<CanvasObject> = [];
@@ -35,6 +35,7 @@ class CanvasRenderAPI{
                 }
             });
         }
+        data.push(new CanvasText((Math.round(this.ps.clock*100)/100).toString(),new number2(0,0)));
         this.canvas.SetParticleData(data);
     }
 

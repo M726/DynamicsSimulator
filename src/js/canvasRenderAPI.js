@@ -29,6 +29,7 @@ class CanvasRenderAPI {
                 }
             });
         }
+        data.push(new CanvasText((Math.round(this.ps.clock * 100) / 100).toString(), new number2(0, 0)));
         this.canvas.SetParticleData(data);
     }
     GetClosestParticle() {

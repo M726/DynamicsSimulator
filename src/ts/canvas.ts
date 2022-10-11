@@ -79,19 +79,13 @@ class Canvas{
         this.textObject.SetText("Frame " + this.frameCounter);
         this.textObject.RenderUI(this.canvasProperties);
     }
-
-    private DrawCanvasObjectUI(object:CanvasObject){
-        this.Path();
-        object.RenderUI(this.canvasProperties);
-        this.Stroke();
-    }
     private DrawObjects(){
         this.objects.forEach(e=>{
             this.DrawCanvasObject(e);
         });
     }
 
-    private DrawCanvasObject(object:CanvasObject){
+    public DrawCanvasObject(object:CanvasObject){
         this.Path();
         object.RenderObject(this.canvasProperties);
         this.Stroke();
@@ -211,6 +205,12 @@ class CanvasProperties{
     }
     TransformCanvasToObjectY(y:number):number{
         return -y/this.scale + this.height/2 - this.offset.y;
+    }
+
+    TransformCanvasToObjectVector(canvasCoordinates:number2):number2{
+        return new number2(
+            canvasCoordinates.x/this.scale,
+            canvasCoordinates.y/this.scale);
     }
 
     LineObjectToCanvas(pA:number2, pB:number2){
