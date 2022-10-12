@@ -12,12 +12,8 @@ class CanvasRenderAPI {
     UpdateData() {
         let particles = this.ps.GetParticles();
         let data = [];
-        if (this.showForceVectors) {
-            let f = particles.map(e => e.forceAcc.map(force => new CanvasVector(e.position, force.ScalarMultiply(50)))).flat();
-            data = data.concat(f);
-        }
         if (this.showParticles) {
-            let c = particles.map(e => new CanvasCircle(e.position, e.massKg));
+            let c = particles.map(e => new CanvasCircle(e.x, e.y, e.radius));
             data = data.concat(c);
         }
         if (this.showForces) {
@@ -25,11 +21,11 @@ class CanvasRenderAPI {
             forces.forEach(force => {
                 if (typeOf(force) == "Spring") {
                     let s = force;
-                    data.push(new CanvasLine(s.pA.position, s.pB.position));
+                    data.push(new CanvasLine(s.pA.x, s.pA.y, s.pB.x, s.pB.y));
                 }
             });
         }
-        data.push(new CanvasText((Math.round(this.ps.clock * 100) / 100).toString(), new number2(0, 0)));
+        data.push(new CanvasText((Math.round(this.ps.clock * 100) / 100).toString(), 0, 0));
         this.canvas.SetParticleData(data);
     }
     GetClosestParticle() {

@@ -11,11 +11,12 @@ class Canvas{
     private drawObjects:boolean = true;
     private drawUI:boolean = true;
     private scale:number = 1; 
-    private offset:number2 = new number2(0,0); 
+    private offsetX:number = 0;
+    private offsetY:number = 0;
 
     private frameCounter:number = 1;
 
-    private textObject = new CanvasText("",new number2(10,25));
+    private textObject = new CanvasText("",10,25);
 
     public constructor(canvas:HTMLCanvasElement){
         this.c = canvas;
@@ -33,7 +34,8 @@ class Canvas{
     public UpdateCanvasProperties(){
         this.canvasProperties.width = this.GetWidthScaled();
         this.canvasProperties.height = this.GetHeightScaled();
-        this.canvasProperties.offset = this.GetOffsetScaled();
+        this.canvasProperties.offsetX = this.GetOffsetXScaled();
+        this.canvasProperties.offsetY = this.GetOffsetYScaled();
         this.canvasProperties.scale = this.scale
     }
     public GetCanvasProperties():CanvasProperties{
@@ -45,6 +47,9 @@ class Canvas{
     }
 
     public Reset():void{
+        for(let i = 0; i < this.objects.length; i++){
+            delete(this.objects[i]);
+        }
         this.objects = [];
         this.color = "#FFFFFF";
     }
@@ -108,6 +113,7 @@ class Canvas{
     }
     public SetScale(scale:number):void{
         this.scale = scale;
+        console.log()
     }
     public GetScale():number{
         return this.scale;
@@ -135,17 +141,37 @@ class Canvas{
     }
 
     
-    public GetOffsetScaled():number2{
-        return this.offset.ScalarDivide(this.scale);
+    public GetOffsetXScaled():number{
+        return this.offsetX/this.scale;
     }
-    public SetOffsetScaled(offset:number2):void{
-        this.offset = offset.ScalarMultiply(this.scale)
+    public GetOffsetYScaled():number{
+        return this.offsetY/this.scale;
     }
-    public GetOffsetPx():number2{
-        return this.offset;
+    public SetOffsetScaled(offsetX:number, offsetY:number):void{
+        this.SetOffsetXScaled(offsetX);
+        this.SetOffsetYScaled(offsetY);
     }
-    public SetOffsetPx(offset:number2):void{
-        this.offset = offset;
+    public SetOffsetXScaled(offsetX:number):void{
+        this.offsetX = offsetX * this.scale;
+    }
+    public SetOffsetYScaled(offsetY:number):void{
+        this.offsetY = offsetY * this.scale;
+    }
+    public GetOffsetXPx():number{
+        return this.offsetX;
+    }
+    public GetOffsetYPx():number{
+        return this.offsetY;
+    }
+    public SetOffsetXPx(offsetX:number):void{
+        this.offsetX = offsetX;
+    }
+    public SetOffsetYPx(offsetY:number):void{
+        this.offsetY = offsetY;
+    }
+    public SetOffsetPx(offsetX:number, offsetY:number):void{
+        this.SetOffsetXPx(offsetX);
+        this.SetOffsetYPx(offsetY);
     }
 
     public GetBoundingClientRect(){
@@ -164,64 +190,48 @@ class Canvas{
 class CanvasProperties{
     width:number;
     height:number;
-    offset:number2;
+    offsetX:number;
+    offsetY:number;
     scale:number;
     ctx:CanvasRenderingContext2D;
 
-    Line(pointA:number2, pointB:number2){
-        this.ctx.moveTo(pointA.x,pointA.y);
-        this.ctx.lineTo(pointB.x,pointB.y);
+    Line(x1:number, y1:number, x2:number, y2:number){
+        this.ctx.moveTo(x1,y1);
+        this.ctx.lineTo(x2,y2);
     }
 
-    Circle(center:number2,radius:number){
+    Circle(x:number, y:number, radius:number){
         this.ctx.arc(
-            center.x,
-            center.y,
-            radius,
+            x,y,radius,
             0,360);
     }
 
-    TransformObjectToCanvas(objectCoordinates:number2):number2{
-        return new number2(
-            this.TransformObjectToCanvasX(objectCoordinates.x),
-            this.TransformObjectToCanvasY(objectCoordinates.y));
-    }
-
     TransformObjectToCanvasX(x:number):number{
-        return this.scale * (this.width/2 + (x + this.offset.x));
+        return this.scale * (this.width/2 + (x + this.offsetX));
     }
 
     TransformObjectToCanvasY(y:number):number{
-        return this.scale * (this.height/2 - (y + this.offset.y));
-    }
-
-    TransformCanvasToObject(canvasCoordinates:number2):number2{
-        return new number2(
-            this.TransformCanvasToObjectX(canvasCoordinates.x),
-            this.TransformCanvasToObjectY(canvasCoordinates.y));
+        return this.scale * (this.height/2 - (y + this.offsetY));
     }
     TransformCanvasToObjectX(x:number):number{
-        return x/this.scale - this.width/2 - this.offset.x;
+        return x/this.scale - this.width/2 - this.offsetX;
     }
     TransformCanvasToObjectY(y:number):number{
-        return -y/this.scale + this.height/2 - this.offset.y;
+        return -y/this.scale + this.height/2 - this.offsetY;
     }
 
-    TransformCanvasToObjectVector(canvasCoordinates:number2):number2{
-        return new number2(
-            canvasCoordinates.x/this.scale,
-            canvasCoordinates.y/this.scale);
-    }
-
-    LineObjectToCanvas(pA:number2, pB:number2){
+    LineObjectToCanvas(x1:number, y1:number, x2:number, y2:number){
         this.Line(
-            this.TransformObjectToCanvas(pA),
-            this.TransformObjectToCanvas(pB));
+            this.TransformObjectToCanvasX(x1),
+            this.TransformObjectToCanvasY(y1),
+            this.TransformObjectToCanvasX(x2),
+            this.TransformObjectToCanvasY(y2),);
     }
 
-    CircleObjectToCanvas(center:number2,radius:number){
+    CircleObjectToCanvas(x:number, y:number, radius:number){
         this.Circle(
-            this.TransformObjectToCanvas(center),
+            this.TransformObjectToCanvasX(x),
+            this.TransformObjectToCanvasY(y),
             this.scale * (radius)
         );
     }
@@ -233,45 +243,49 @@ interface CanvasObject{
 }
 
 class CanvasCircle implements CanvasObject{
-    position : number2;
+    x:number;
+    y:number;
     radius : number;
 
-    public constructor(position : number2, radius : number){
-        this.position = position;
+    public constructor(x : number, y:number, radius : number){
+        this.x = x;
+        this.y = y;
         this.radius = radius;
     }
 
     RenderObject(canvasProperties:CanvasProperties):void{
-        canvasProperties.CircleObjectToCanvas(this.position,this.radius);
+        canvasProperties.CircleObjectToCanvas(this.x,this.y,this.radius);
     }
     RenderUI(canvasProperties: CanvasProperties): void {
-        canvasProperties.Circle(this.position,this.radius);
+        canvasProperties.Circle(this.x,this.y,this.radius);
     }
 } 
 
 class CanvasText implements CanvasObject{
     text: string;
-    position: number2;
+    x:number;
+    y:number;
 
-    constructor(text:string, position:number2){
+    constructor(text:string, x:number, y:number){
         this.text = text;
-        this.position = position;
+        this.x = x;
+        this.y = y;
     }
     RenderObject(canvasProperties: CanvasProperties):void{
         canvasProperties.ctx.fillStyle = "#000000";
         canvasProperties.ctx.font="20px Calibri";
         canvasProperties.ctx.fillText(
             this.text,
-            canvasProperties.TransformObjectToCanvasX(this.position.x),
-            canvasProperties.TransformObjectToCanvasY(this.position.y));
+            canvasProperties.TransformObjectToCanvasX(this.x),
+            canvasProperties.TransformObjectToCanvasY(this.y));
     }
     RenderUI(canvasProperties: CanvasProperties): void {
         canvasProperties.ctx.fillStyle = "#000000";
         canvasProperties.ctx.font="20px Calibri";
         canvasProperties.ctx.fillText(
             this.text,
-            this.position.x,
-            this.position.y);
+            this.x,
+            this.y);
     }
 
     public SetText(text:string){
@@ -281,36 +295,44 @@ class CanvasText implements CanvasObject{
 }
 
 class CanvasVector implements CanvasObject{
-    origin:number2;
-    direction:number2;
+    x:number;
+    y:number;
+    dx:number;
+    dy:number;
 
-    constructor(origin:number2, direction:number2){
-        this.origin = origin;
-        this.direction = direction;
+    constructor(x:number, y:number, dx:number, dy:number){
+        this.x = x;
+        this.y = y;
+        this.dx = dx;
+        this.dy = dy;
     }
 
     RenderObject(canvasProperties: CanvasProperties): void {
-        canvasProperties.LineObjectToCanvas(this.origin, this.origin.Add(this.direction));
+        canvasProperties.LineObjectToCanvas(this.x,this.y,this.x+this.dx, this.y+this.dy);
     }
     RenderUI(canvasProperties: CanvasProperties): void {
-        canvasProperties.Line(this.origin, this.origin.Add(this.direction));
+        canvasProperties.Line(this.x,this.y,this.x+this.dx, this.y+this.dy);
     }
 
 }
 
 class CanvasLine implements CanvasObject{
-    origin:number2;
-    point2:number2;
+    x1:number;
+    y1:number;
+    x2:number;
+    y2:number;
 
-    constructor(origin:number2, point2:number2){
-        this.origin = origin;
-        this.point2 = point2;
+    constructor(x1:number, y1:number, x2:number, y2:number){
+        this.x1 = x1;
+        this.y1 = y1;
+        this.x2 = x2;
+        this.y2 = y2;
     }
 
     RenderObject(canvasProperties: CanvasProperties): void {
-        canvasProperties.LineObjectToCanvas(this.origin, this.point2);
+        canvasProperties.LineObjectToCanvas(this.x1,this.y1,this.x2,this.y2);
     }
     RenderUI(canvasProperties: CanvasProperties): void {
-        canvasProperties.Line(this.origin, this.point2);
+        canvasProperties.Line(this.x1,this.y1,this.x2,this.y2);
     }
 }

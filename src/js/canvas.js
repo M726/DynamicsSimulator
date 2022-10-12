@@ -8,9 +8,10 @@ class Canvas {
     drawObjects = true;
     drawUI = true;
     scale = 1;
-    offset = new number2(0, 0);
+    offsetX = 0;
+    offsetY = 0;
     frameCounter = 1;
-    textObject = new CanvasText("", new number2(10, 25));
+    textObject = new CanvasText("", 10, 25);
     constructor(canvas) {
         this.c = canvas;
         this.ctx = canvas.getContext("2d");
@@ -25,7 +26,8 @@ class Canvas {
     UpdateCanvasProperties() {
         this.canvasProperties.width = this.GetWidthScaled();
         this.canvasProperties.height = this.GetHeightScaled();
-        this.canvasProperties.offset = this.GetOffsetScaled();
+        this.canvasProperties.offsetX = this.GetOffsetXScaled();
+        this.canvasProperties.offsetY = this.GetOffsetYScaled();
         this.canvasProperties.scale = this.scale;
     }
     GetCanvasProperties() {
@@ -35,6 +37,9 @@ class Canvas {
         this.objects = data;
     }
     Reset() {
+        for (let i = 0; i < this.objects.length; i++) {
+            delete (this.objects[i]);
+        }
         this.objects = [];
         this.color = "#FFFFFF";
     }
@@ -86,6 +91,7 @@ class Canvas {
     }
     SetScale(scale) {
         this.scale = scale;
+        console.log();
     }
     GetScale() {
         return this.scale;
@@ -109,17 +115,37 @@ class Canvas {
     GetHeightScaled() {
         return this.c.height / this.scale;
     }
-    GetOffsetScaled() {
-        return this.offset.ScalarDivide(this.scale);
+    GetOffsetXScaled() {
+        return this.offsetX / this.scale;
     }
-    SetOffsetScaled(offset) {
-        this.offset = offset.ScalarMultiply(this.scale);
+    GetOffsetYScaled() {
+        return this.offsetY / this.scale;
     }
-    GetOffsetPx() {
-        return this.offset;
+    SetOffsetScaled(offsetX, offsetY) {
+        this.SetOffsetXScaled(offsetX);
+        this.SetOffsetYScaled(offsetY);
     }
-    SetOffsetPx(offset) {
-        this.offset = offset;
+    SetOffsetXScaled(offsetX) {
+        this.offsetX = offsetX * this.scale;
+    }
+    SetOffsetYScaled(offsetY) {
+        this.offsetY = offsetY * this.scale;
+    }
+    GetOffsetXPx() {
+        return this.offsetX;
+    }
+    GetOffsetYPx() {
+        return this.offsetY;
+    }
+    SetOffsetXPx(offsetX) {
+        this.offsetX = offsetX;
+    }
+    SetOffsetYPx(offsetY) {
+        this.offsetY = offsetY;
+    }
+    SetOffsetPx(offsetX, offsetY) {
+        this.SetOffsetXPx(offsetX);
+        this.SetOffsetYPx(offsetY);
     }
     GetBoundingClientRect() {
         return this.c.getBoundingClientRect();
@@ -134,105 +160,109 @@ class Canvas {
 class CanvasProperties {
     width;
     height;
-    offset;
+    offsetX;
+    offsetY;
     scale;
     ctx;
-    Line(pointA, pointB) {
-        this.ctx.moveTo(pointA.x, pointA.y);
-        this.ctx.lineTo(pointB.x, pointB.y);
+    Line(x1, y1, x2, y2) {
+        this.ctx.moveTo(x1, y1);
+        this.ctx.lineTo(x2, y2);
     }
-    Circle(center, radius) {
-        this.ctx.arc(center.x, center.y, radius, 0, 360);
-    }
-    TransformObjectToCanvas(objectCoordinates) {
-        return new number2(this.TransformObjectToCanvasX(objectCoordinates.x), this.TransformObjectToCanvasY(objectCoordinates.y));
+    Circle(x, y, radius) {
+        this.ctx.arc(x, y, radius, 0, 360);
     }
     TransformObjectToCanvasX(x) {
-        return this.scale * (this.width / 2 + (x + this.offset.x));
+        return this.scale * (this.width / 2 + (x + this.offsetX));
     }
     TransformObjectToCanvasY(y) {
-        return this.scale * (this.height / 2 - (y + this.offset.y));
-    }
-    TransformCanvasToObject(canvasCoordinates) {
-        return new number2(this.TransformCanvasToObjectX(canvasCoordinates.x), this.TransformCanvasToObjectY(canvasCoordinates.y));
+        return this.scale * (this.height / 2 - (y + this.offsetY));
     }
     TransformCanvasToObjectX(x) {
-        return x / this.scale - this.width / 2 - this.offset.x;
+        return x / this.scale - this.width / 2 - this.offsetX;
     }
     TransformCanvasToObjectY(y) {
-        return -y / this.scale + this.height / 2 - this.offset.y;
+        return -y / this.scale + this.height / 2 - this.offsetY;
     }
-    TransformCanvasToObjectVector(canvasCoordinates) {
-        return new number2(canvasCoordinates.x / this.scale, canvasCoordinates.y / this.scale);
+    LineObjectToCanvas(x1, y1, x2, y2) {
+        this.Line(this.TransformObjectToCanvasX(x1), this.TransformObjectToCanvasY(y1), this.TransformObjectToCanvasX(x2), this.TransformObjectToCanvasY(y2));
     }
-    LineObjectToCanvas(pA, pB) {
-        this.Line(this.TransformObjectToCanvas(pA), this.TransformObjectToCanvas(pB));
-    }
-    CircleObjectToCanvas(center, radius) {
-        this.Circle(this.TransformObjectToCanvas(center), this.scale * (radius));
+    CircleObjectToCanvas(x, y, radius) {
+        this.Circle(this.TransformObjectToCanvasX(x), this.TransformObjectToCanvasY(y), this.scale * (radius));
     }
 }
 class CanvasCircle {
-    position;
+    x;
+    y;
     radius;
-    constructor(position, radius) {
-        this.position = position;
+    constructor(x, y, radius) {
+        this.x = x;
+        this.y = y;
         this.radius = radius;
     }
     RenderObject(canvasProperties) {
-        canvasProperties.CircleObjectToCanvas(this.position, this.radius);
+        canvasProperties.CircleObjectToCanvas(this.x, this.y, this.radius);
     }
     RenderUI(canvasProperties) {
-        canvasProperties.Circle(this.position, this.radius);
+        canvasProperties.Circle(this.x, this.y, this.radius);
     }
 }
 class CanvasText {
     text;
-    position;
-    constructor(text, position) {
+    x;
+    y;
+    constructor(text, x, y) {
         this.text = text;
-        this.position = position;
+        this.x = x;
+        this.y = y;
     }
     RenderObject(canvasProperties) {
         canvasProperties.ctx.fillStyle = "#000000";
         canvasProperties.ctx.font = "20px Calibri";
-        canvasProperties.ctx.fillText(this.text, canvasProperties.TransformObjectToCanvasX(this.position.x), canvasProperties.TransformObjectToCanvasY(this.position.y));
+        canvasProperties.ctx.fillText(this.text, canvasProperties.TransformObjectToCanvasX(this.x), canvasProperties.TransformObjectToCanvasY(this.y));
     }
     RenderUI(canvasProperties) {
         canvasProperties.ctx.fillStyle = "#000000";
         canvasProperties.ctx.font = "20px Calibri";
-        canvasProperties.ctx.fillText(this.text, this.position.x, this.position.y);
+        canvasProperties.ctx.fillText(this.text, this.x, this.y);
     }
     SetText(text) {
         this.text = text;
     }
 }
 class CanvasVector {
-    origin;
-    direction;
-    constructor(origin, direction) {
-        this.origin = origin;
-        this.direction = direction;
+    x;
+    y;
+    dx;
+    dy;
+    constructor(x, y, dx, dy) {
+        this.x = x;
+        this.y = y;
+        this.dx = dx;
+        this.dy = dy;
     }
     RenderObject(canvasProperties) {
-        canvasProperties.LineObjectToCanvas(this.origin, this.origin.Add(this.direction));
+        canvasProperties.LineObjectToCanvas(this.x, this.y, this.x + this.dx, this.y + this.dy);
     }
     RenderUI(canvasProperties) {
-        canvasProperties.Line(this.origin, this.origin.Add(this.direction));
+        canvasProperties.Line(this.x, this.y, this.x + this.dx, this.y + this.dy);
     }
 }
 class CanvasLine {
-    origin;
-    point2;
-    constructor(origin, point2) {
-        this.origin = origin;
-        this.point2 = point2;
+    x1;
+    y1;
+    x2;
+    y2;
+    constructor(x1, y1, x2, y2) {
+        this.x1 = x1;
+        this.y1 = y1;
+        this.x2 = x2;
+        this.y2 = y2;
     }
     RenderObject(canvasProperties) {
-        canvasProperties.LineObjectToCanvas(this.origin, this.point2);
+        canvasProperties.LineObjectToCanvas(this.x1, this.y1, this.x2, this.y2);
     }
     RenderUI(canvasProperties) {
-        canvasProperties.Line(this.origin, this.point2);
+        canvasProperties.Line(this.x1, this.y1, this.x2, this.y2);
     }
 }
 //# sourceMappingURL=canvas.js.map

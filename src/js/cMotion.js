@@ -1,10 +1,9 @@
 class UnaryForce {
     forceApplierFunction(p) {
-        return new number2(0, 0);
     }
     ApplyForce(ps) {
         ps.forEach(e => {
-            e.AddForce(this.forceApplierFunction(e));
+            this.forceApplierFunction(e);
         });
     }
 }
@@ -22,7 +21,7 @@ class Gravity extends UnaryForce {
             this.acceleration = acceleration;
     }
     forceApplierFunction(p) {
-        return (new number2(0, -this.acceleration)).ScalarMultiply(p.massKg);
+        p.AddForce(0, -this.acceleration * p.massKg);
     }
 }
 class ViscousDrag extends UnaryForce {
@@ -33,7 +32,7 @@ class ViscousDrag extends UnaryForce {
             this.kConstant = kConstNewtonSecondPerMeter2;
     }
     forceApplierFunction(p) {
-        return p.velocity.ScalarMultiply(-this.kConstant);
+        p.AddForce(-this.kConstant * p.u, -this.kConstant * p.v);
     }
 }
 class Spring extends NAryForce {
@@ -52,62 +51,52 @@ class Spring extends NAryForce {
             this.dConst = dampening;
     }
     forceApplierFunction() {
-        let l = this.pA.position.Subtract(this.pB.position);
-        let i = this.pA.velocity.Subtract(this.pB.velocity);
-        let F = l.Normalize().ScalarMultiply(-this.kConst * (l.Length() - this.restLength) - this.dConst * (i.Dot(l) / l.Length()));
-        this.pA.AddForce(F);
-        this.pB.AddForce(F.ScalarMultiply(-1));
+        let dx = this.pA.x - this.pB.x;
+        let dy = this.pA.y - this.pB.y;
+        let dPos = Math.sqrt(dx * dx + dy * dy);
+        let magnitude = -(this.kConst * (dPos - this.restLength) + this.dConst * ((dot(this.pA.u - this.pB.u, this.pA.v - this.pB.v, dx, dy)) / dPos)) / dPos;
+        this.pA.AddForce(magnitude * dx, magnitude * dy);
+        this.pB.AddForce(-magnitude * dx, -magnitude * dy);
     }
 }
 class Particle {
-    position;
-    velocity;
+    x;
+    y;
+    u;
+    v;
     massKg = 1;
-    forceAcc;
-    forceUpdated = true;
-    forceCurrent = new number2(0, 0);
+    radius;
+    forceX;
+    forceY;
     lockPosition = false;
-    constructor() {
-        this.forceAcc = new Array();
-        if (typeOf(arguments[0]) == 'number2') {
-            this.position = arguments[0];
-            this.velocity = arguments[1];
-            this.massKg = arguments[2];
-        }
-        else {
-            this.position = new number2(arguments[0], arguments[1]);
-            this.velocity = new number2(arguments[2], arguments[3]);
-            this.massKg = arguments[4];
-        }
+    constructor(x, y, u, v, massKg, radius) {
+        this.x = x;
+        this.y = y;
+        this.u = u;
+        this.v = v;
+        this.massKg = massKg;
+        if (radius != undefined)
+            this.radius = radius;
+        else
+            this.radius = massKg;
+        this.forceX = 0;
+        this.forceY = 0;
     }
     toString() {
-        return this.position.toString() + " " + this.velocity.toString();
+        return `(${this.x},${this.y})`;
     }
-    AddForce(force) {
-        this.forceUpdated = false;
-        this.forceAcc.push(force);
+    AddForce(x, y) {
+        this.forceX += x;
+        this.forceY += y;
     }
     ClearForces() {
-        this.forceAcc = [];
-    }
-    GetForceTotal() {
-        if (this.forceUpdated)
-            return this.forceCurrent;
-        this.UpdateForceTotal();
-        return this.forceCurrent;
-    }
-    SetForceTotal(total) {
-        this.forceCurrent = total;
-    }
-    UpdateForceTotal() {
-        this.forceCurrent = this.forceAcc.reduce((accumulator, current) => {
-            return accumulator.Add(current);
-        }, new number2(0, 0));
-        this.forceUpdated = true;
+        this.forceX = 0;
+        this.forceY = 0;
     }
     LockPosition() {
         this.lockPosition = true;
-        this.velocity.set(0, 0);
+        this.u = 0;
+        this.v = 0;
     }
     UnlockPosition() {
         this.lockPosition = false;
@@ -115,40 +104,24 @@ class Particle {
     IsLocked() {
         return this.lockPosition;
     }
-    GetPosition() {
-        return this.position;
-    }
-    SetPosition(x) {
-        if (this.lockPosition)
-            return;
-        this.position = x;
-    }
-    GetVelocity() {
-        return this.velocity;
-    }
-    SetVelocity(x) {
-        if (this.lockPosition)
-            return;
-        this.velocity = x;
-    }
 }
 class ParticleSystem {
     dimension = 2; //2D
     particles = [];
     forces = [];
     clock = 0;
-    solver = new EulerODESolver();
+    solver = new ODESolverRK4();
     AddParticle(particle) {
         this.particles.push(particle);
     }
     GetParticles() {
         return this.particles;
     }
-    FindClosestParticle(position) {
+    FindClosestParticle(x, y) {
         let returnParticle = this.particles[0];
-        let dist = this.particles[0].position.Subtract(position).Length();
+        let dist = this.GetDistanceToParticle(this.particles[0], x, y);
         for (let i = 0; i < this.particles.length; i++) {
-            let d = this.GetDistanceToParticle(this.particles[i], position);
+            let d = this.GetDistanceToParticle(this.particles[i], x, y);
             if (d < dist) {
                 dist = d;
                 returnParticle = this.particles[i];
@@ -156,8 +129,8 @@ class ParticleSystem {
         }
         return returnParticle;
     }
-    GetDistanceToParticle(particle, point) {
-        return particle.position.Subtract(point).Length();
+    GetDistanceToParticle(particle, x, y) {
+        return distanceBetweenPoints(particle.x, particle.y, x, y);
     }
     AddForce(force) {
         this.forces.push(force);
@@ -189,20 +162,26 @@ class ParticleSystem {
     }
     GetPhaseSpaceDimension() {
         //2*n*dimension
-        return 2 * this.particles.length;
+        return 4 * this.particles.length;
     }
     GetStateVector() {
         let r = new Array(this.GetPhaseSpaceDimension());
         for (let i = 0; i < this.particles.length; i++) {
-            r[2 * i] = this.particles[i].GetPosition();
-            r[2 * i + 1] = this.particles[i].GetVelocity();
+            r[4 * i] = this.particles[i].x;
+            r[4 * i + 1] = this.particles[i].y;
+            r[4 * i + 2] = this.particles[i].u;
+            r[4 * i + 3] = this.particles[i].v;
         }
         return r;
     }
     SetStateVector(r) {
         for (let i = 0; i < this.particles.length; i++) {
-            this.particles[i].SetPosition(r[2 * i]);
-            this.particles[i].SetVelocity(r[2 * i + 1]);
+            if (!this.particles[i].IsLocked()) {
+                this.particles[i].x = (r[4 * i]);
+                this.particles[i].y = (r[4 * i + 1]);
+                this.particles[i].u = (r[4 * i + 2]);
+                this.particles[i].v = (r[4 * i + 3]);
+            }
         }
     }
     GetParticleDerivatives() {
@@ -210,16 +189,36 @@ class ParticleSystem {
         this.ComputeForces();
         let r = new Array(this.GetPhaseSpaceDimension());
         for (let i = 0; i < this.particles.length; i++) {
-            r[2 * i] = this.particles[i].GetVelocity();
-            r[2 * i + 1] = this.particles[i].GetForceTotal().ScalarDivide(this.particles[i].massKg);
+            r[4 * i] = this.particles[i].u;
+            r[4 * i + 1] = this.particles[i].v;
+            r[4 * i + 2] = this.particles[i].forceX / this.particles[i].massKg;
+            r[4 * i + 3] = this.particles[i].forceY / this.particles[i].massKg;
         }
         return r;
     }
+    AddVectors(a, b) {
+        let result = new Array(a.length);
+        for (let i = 0; i < a.length; i++) {
+            result[i] = a[i] + b[i];
+        }
+        return result;
+    }
+    AddVectors4(a, b, c, d) {
+        let result = new Array(a.length);
+        for (let i = 0; i < a.length; i++) {
+            result[i] = a[i] + b[i] + c[i] + d[i];
+        }
+        return result;
+    }
+    ScaleVectors(derivs, factor) {
+        let result = new Array(derivs.length);
+        for (let i = 0; i < derivs.length; i++) {
+            result[i] = derivs[i] * factor;
+        }
+        return result;
+    }
     RunTimeStep(dt) {
-        this.ClearForces;
-        this.ComputeForces();
-        this.ComputeConstraintForces();
-        this.SetStateVector(this.solver.Solve(this.GetPhaseSpaceDimension(), this.GetStateVector(), this.GetParticleDerivatives(), dt));
+        this.solver.Solve(this, dt);
         this.clock += dt;
     }
     forEach(callbackfn) {
@@ -228,17 +227,40 @@ class ParticleSystem {
         }
     }
     collisionCheck(pA, pB) {
-        return pA.position.Subtract(pB.position).Length() <
-            (pA.massKg + pB.massKg);
+        return distanceParticles(pA, pB) < (pA.radius + pB.radius);
     }
 }
-class EulerODESolver {
-    Solve(dim, stateVector, derivatives, dt) {
-        let result = new Array(stateVector.length);
-        for (let i = 0; i < dim; i++) {
-            result[i] = stateVector[i].Add(derivatives[i].ScalarMultiply(dt));
-        }
-        return result;
+class ODESolverEuler {
+    Solve(ps, dt) {
+        let statev = ps.GetStateVector();
+        //x(t_0+h) = x(t_0) + deriv(t_0) * dt
+        //result = statev + deriv * dt
+        ps.SetStateVector(ps.AddVectors(statev, ps.ScaleVectors(ps.GetParticleDerivatives(), dt)));
+    }
+}
+class ODESolverMidpoint {
+    Solve(ps, dt) {
+        let statev = ps.GetStateVector();
+        let result = new Array(statev.length);
+        //x(t_0+h) = x(t_0) + deriv(t_0) * dt + 
+        //result = statev + deriv * dt
+        ps.SetStateVector(ps.AddVectors(statev, ps.ScaleVectors(ps.GetParticleDerivatives(), dt * 0.5)));
+        ps.SetStateVector(ps.AddVectors(statev, ps.ScaleVectors(ps.GetParticleDerivatives(), dt)));
+    }
+}
+class ODESolverRK4 {
+    Solve(ps, dt) {
+        let statev = ps.GetStateVector();
+        let k1 = ps.GetParticleDerivatives();
+        ps.SetStateVector(ps.AddVectors(statev, ps.ScaleVectors(k1, dt / 2)));
+        let k2 = ps.GetParticleDerivatives();
+        ps.SetStateVector(ps.AddVectors(statev, ps.ScaleVectors(k2, dt / 2)));
+        let k3 = ps.GetParticleDerivatives();
+        ps.SetStateVector(ps.AddVectors(statev, ps.ScaleVectors(k3, dt)));
+        let k4 = ps.GetParticleDerivatives();
+        //ps.SetStateVector(ps.AddVectors(statev,ps.ScaleVectors(k1,0.5)));
+        ps.SetStateVector(ps.AddVectors(statev, ps.ScaleVectors(ps.AddVectors4(k1, ps.ScaleVectors(k2, 2), ps.ScaleVectors(k3, 2), k4), dt / 6)));
+        //console.log(ps.AddVectorArray([k1, ps.ScaleVectors(k2,2), ps.ScaleVectors(k3,2), k4]));
     }
 }
 //# sourceMappingURL=cMotion.js.map
