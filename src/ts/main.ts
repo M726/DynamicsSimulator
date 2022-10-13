@@ -21,7 +21,7 @@ function init(){
     
     
 
-    let iMax = 30;
+    let iMax = 20;
     let jMax = 30;
     let kConst = 100;
     let dx = 0.1;
@@ -68,7 +68,7 @@ function init(){
 
 
     let timerDtSeconds = 0.004;
-    let dt = 0.001;
+    let dt = 0.0005;
     
     tick();
     function tick():void{
@@ -81,7 +81,7 @@ function init(){
         canvasRenderAPI.UpdateData();
     }
     setInterval(tick,timerDtSeconds*1000);//4ms timer
-    setInterval(updateFrame,1000/30);
+    setInterval(updateFrame,1000/60);
 
     ////Handle Mouse Stuff:
     let mouseDown:number = -1;
@@ -135,7 +135,7 @@ function init(){
                 mouseSpring.pB = mouseParticle;
                 particle = mouseParticle;
                 break;
-            case 1:
+            case 2:
                 if(previousOffsetX == canvas.GetOffsetXPx() && previousOffsetY == canvas.GetOffsetYPx()){
                     canvas.SetOffsetPx(0,0);
                 }
@@ -160,7 +160,7 @@ function init(){
                 //particle.LockPosition();
                 
             break;
-            case 1:
+            case 2:
                 canvas.SetOffsetPx(movementVectorX + previousOffsetX, movementVectorY + previousOffsetY);
             break;
         }
