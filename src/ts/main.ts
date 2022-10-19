@@ -55,23 +55,23 @@ function setupScene(){
     }
     for(let i = 1; i < iMax-1;i++){
         for(let j = 1; j < jMax-1;j++){
-            particleSystem.AddForce(new Spring(particles[i][j],particles[i][j+1],kConst,dx));
-            particleSystem.AddForce(new Spring(particles[i][j],particles[i][j-1],kConst,dx));
-            particleSystem.AddForce(new Spring(particles[i][j],particles[i+1][j],kConst,dx));
-            particleSystem.AddForce(new Spring(particles[i][j],particles[i-1][j],kConst,dx));
+            particleSystem.AddForce(new Rope(particles[i][j],particles[i][j+1],kConst,dx));
+            particleSystem.AddForce(new Rope(particles[i][j],particles[i][j-1],kConst,dx));
+            particleSystem.AddForce(new Rope(particles[i][j],particles[i+1][j],kConst,dx));
+            particleSystem.AddForce(new Rope(particles[i][j],particles[i-1][j],kConst,dx));
         }
     }
     for(let i = 1; i < iMax-1;i++){
-        particleSystem.AddForce(new Spring(particles[i][0],particles[i-1][0],kConst,dx));
-        particleSystem.AddForce(new Spring(particles[i][0],particles[i+1][0],kConst,dx));
-        particleSystem.AddForce(new Spring(particles[i][jMax-1],particles[i-1][jMax-1],kConst,dx));
-        particleSystem.AddForce(new Spring(particles[i][jMax-1],particles[i+1][jMax-1],kConst,dx));
+        particleSystem.AddForce(new Rope(particles[i][0],particles[i-1][0],kConst,dx));
+        particleSystem.AddForce(new Rope(particles[i][0],particles[i+1][0],kConst,dx));
+        particleSystem.AddForce(new Rope(particles[i][jMax-1],particles[i-1][jMax-1],kConst,dx));
+        particleSystem.AddForce(new Rope(particles[i][jMax-1],particles[i+1][jMax-1],kConst,dx));
     }
     for(let j = 1; j < jMax-1;j++){
-        particleSystem.AddForce(new Spring(particles[0][j],particles[0][j-1],kConst,dx));
-        particleSystem.AddForce(new Spring(particles[0][j],particles[0][j+1],kConst,dx));
-        particleSystem.AddForce(new Spring(particles[iMax-1][j],particles[iMax-1][j-1],kConst,dx));
-        particleSystem.AddForce(new Spring(particles[iMax-1][j],particles[iMax-1][j+1],kConst,dx));
+        particleSystem.AddForce(new Rope(particles[0][j],particles[0][j-1],kConst,dx));
+        particleSystem.AddForce(new Rope(particles[0][j],particles[0][j+1],kConst,dx));
+        particleSystem.AddForce(new Rope(particles[iMax-1][j],particles[iMax-1][j-1],kConst,dx));
+        particleSystem.AddForce(new Rope(particles[iMax-1][j],particles[iMax-1][j+1],kConst,dx));
     }
 
     particles[0][0].LockPosition();

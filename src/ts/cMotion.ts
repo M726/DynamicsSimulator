@@ -80,6 +80,38 @@ class Spring extends NAryForce{
     }
 }
 
+class Rope extends NAryForce{
+    pA:Particle;
+    pB:Particle;
+    restLength:number;
+    kConst:number;
+    dConst:number = 0.01;
+
+    constructor(
+            pA:Particle, 
+            pB:Particle, 
+            kConstNewtonPerMeter:number, 
+            restLength:number,
+            dampening?:number){
+        super();
+        this.pA = pA;
+        this.pB = pB;
+        this.restLength = restLength;
+        this.kConst = kConstNewtonPerMeter;
+        if(dampening !== undefined) this.dConst = dampening;
+    }
+
+    forceApplierFunction(): void {
+        let dx = this.pA.x-this.pB.x;
+        let dy = this.pA.y-this.pB.y;
+        let dPos = Math.sqrt(dx*dx+dy*dy);
+        let magnitude = -(this.kConst * (dPos-this.restLength) + this.dConst * ((dot(this.pA.u-this.pB.u,this.pA.v-this.pB.v,dx,dy))/dPos))/dPos;
+        if(magnitude > 0) return;
+        this.pA.AddForce(magnitude * dx,magnitude * dy);
+        this.pB.AddForce(-magnitude * dx,-magnitude * dy);
+    }
+}
+
 class Particle{
     x:number;
     y:number;

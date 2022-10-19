@@ -19,9 +19,15 @@ class CanvasRenderAPI {
         if (this.showForces) {
             let forces = this.ps.GetForces();
             forces.forEach(force => {
-                if (typeOf(force) == "Spring") {
-                    let s = force;
-                    data.push(new CanvasLine(s.pA.x, s.pA.y, s.pB.x, s.pB.y));
+                switch (typeOf(force)) {
+                    case "Spring":
+                        let s = force;
+                        data.push(new CanvasLine(s.pA.x, s.pA.y, s.pB.x, s.pB.y));
+                        break;
+                    case "Rope":
+                        let r = force;
+                        data.push(new CanvasLine(r.pA.x, r.pA.y, r.pB.x, r.pB.y));
+                        break;
                 }
             });
         }
