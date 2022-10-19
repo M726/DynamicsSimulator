@@ -46,20 +46,28 @@ class InputManager {
         return (e.clientY - boundingClient.top) * (this.canvas.GetHeightPx() / boundingClient.height);
     }
     handlerCanvasMouseDown(e) {
-        if (e.button != 0 || this.mouseMode != MouseMode.None)
-            return;
-        this.moveMouseSpring(e);
-        this.mouseX = this.getCanvasMouseX(e);
-        this.mouseY = this.getCanvasMouseY(e);
-        let mousePositionObjectX = this.canvasProperties.TransformCanvasToObjectX(this.mouseX);
-        let mousePositionObjectY = this.canvasProperties.TransformCanvasToObjectY(this.mouseY);
-        let particle = particleSystem.FindClosestParticle(mousePositionObjectX, mousePositionObjectY);
-        if (particleSystem.GetDistanceToParticle(particle, mousePositionObjectX, mousePositionObjectY) * this.canvas.GetScale() < 50) {
-            this.grabParticle(particle);
-            this.mouseMode = MouseMode.DragParticle;
+        if (e.button == 2 && this.mouseMode == MouseMode.DragParticle) {
+            if (this.mouseSpring.pB.IsLocked()) {
+                this.mouseSpring.pB.UnlockPosition();
+            }
+            else {
+                this.mouseSpring.pB.LockPosition();
+            }
         }
-        else {
-            this.mouseMode = MouseMode.DragCanvas;
+        else if (e.button == 0 && this.mouseMode == MouseMode.None) {
+            this.moveMouseSpring(e);
+            this.mouseX = this.getCanvasMouseX(e);
+            this.mouseY = this.getCanvasMouseY(e);
+            let mousePositionObjectX = this.canvasProperties.TransformCanvasToObjectX(this.mouseX);
+            let mousePositionObjectY = this.canvasProperties.TransformCanvasToObjectY(this.mouseY);
+            let particle = particleSystem.FindClosestParticle(mousePositionObjectX, mousePositionObjectY);
+            if (particleSystem.GetDistanceToParticle(particle, mousePositionObjectX, mousePositionObjectY) * this.canvas.GetScale() < 50) {
+                this.grabParticle(particle);
+                this.mouseMode = MouseMode.DragParticle;
+            }
+            else {
+                this.mouseMode = MouseMode.DragCanvas;
+            }
         }
     }
     handlerCanvasMouseUp(e) {
