@@ -112,8 +112,7 @@ class Canvas{
         this.color=color;
     }
     public SetScale(scale:number):void{
-        this.scale = scale;
-        console.log()
+        this.scale = scale; 
     }
     public GetScale():number{
         return this.scale;

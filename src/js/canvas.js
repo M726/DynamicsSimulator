@@ -91,7 +91,6 @@ class Canvas {
     }
     SetScale(scale) {
         this.scale = scale;
-        console.log();
     }
     GetScale() {
         return this.scale;

@@ -32,8 +32,4 @@ class CanvasRenderAPI{
         data.push(new CanvasText((Math.round(this.ps.clock*100)/100).toString(),0,0));
         this.canvas.SetParticleData(data);
     }
-
-    public GetClosestParticle(){
-        
-    }
 }

@@ -5,22 +5,42 @@ let canvasEl = element("canvas");
 let canvas:Canvas;
 let particleSystem:ParticleSystem;
 let canvasRenderAPI:CanvasRenderAPI;
-let canvasProperties:CanvasProperties;
+let inputManager:InputManager;
 
 function init(){
     particleSystem = new ParticleSystem();
     canvas = new Canvas(<HTMLCanvasElement> canvasEl);
     canvasRenderAPI = new CanvasRenderAPI(canvas,particleSystem);
-    canvasProperties = canvas.GetCanvasProperties();
+    inputManager = new InputManager(canvasEl, canvas, particleSystem);
     
     canvas.SetDimensionsPx(window.innerHeight,window.innerWidth);
     window.addEventListener("resize", e=>canvas.SetDimensionsPx(window.innerHeight,window.innerWidth));
 
     canvas.SetScale(60);
-    //canvas.SetOffsetPx(0,canvas.GetHeightPx()/2);
-    
-    
 
+    setupScene();
+
+  
+
+    let timerDtSeconds = 0.004;
+    let dt = 0.0005;
+    
+    tick();
+    function tick():void{
+        //runs every 4 ms
+        for(let i = 0; i < timerDtSeconds/dt; i++){
+            particleSystem.RunTimeStep(dt);
+        }
+    }
+    function updateFrame():void{
+        canvasRenderAPI.UpdateData();
+    }
+    setInterval(tick,timerDtSeconds*1000);//4ms timer
+    setInterval(updateFrame,1000/60);
+
+}
+
+function setupScene(){
     let iMax = 20;
     let jMax = 30;
     let kConst = 100;
@@ -56,125 +76,11 @@ function init(){
 
     particles[0][0].LockPosition();
     particles[iMax-1][0].LockPosition();
-    //particles[0][jMax-1].LockPosition();
-    //particles[iMax-1][jMax-1].LockPosition();
+
     
-
-
-    //Add Forces to System
+    ///////Add Forces to System
     particleSystem.AddForce(new Gravity(9.8));
     particleSystem.AddForce(new ViscousDrag(0.01));
-
-
-
-    let timerDtSeconds = 0.004;
-    let dt = 0.0005;
-    
-    tick();
-    function tick():void{
-        //runs every 4 ms
-        for(let i = 0; i < timerDtSeconds/dt; i++){
-            particleSystem.RunTimeStep(dt);
-        }
-    }
-    function updateFrame():void{
-        canvasRenderAPI.UpdateData();
-    }
-    setInterval(tick,timerDtSeconds*1000);//4ms timer
-    setInterval(updateFrame,1000/60);
-
-    ////Handle Mouse Stuff:
-    let mouseDown:number = -1;
-    let mouseDownX:number;
-    let mouseDownY:number;
-    let previousOffsetX:number = canvas.GetOffsetXPx();
-    let previousOffsetY:number = canvas.GetOffsetYPx();
-    let particle:Particle;
-
-    //TODO: Add particleSystem.RemoveParticle()
-    let mouseParticle = new Particle(0,0,0,0,1,0);
-    //TODO: Spring force should be a function of the other particles mass? and other forces?
-    let mouseSpring = new Spring(mouseParticle,mouseParticle,100,0,10);
-    mouseParticle.LockPosition();
-    //particleSystem.AddParticle(mouseParticle);
-    particleSystem.AddForce(mouseSpring);
-
-
-    document.addEventListener('contextmenu', event => event.preventDefault());
-    canvasEl.addEventListener("mousedown", handlerCanvasMouseDown);
-    canvasEl.addEventListener("mouseup", handlerCanvasMouseUp);
-    canvasEl.addEventListener("mousemove", handlerCanvasMouseDrag);
-    document.addEventListener("wheel", e => {
-        console.log(-e.deltaY/100);
-        let ds = 0.04*(canvas.GetScale()-1)+1;
-        let newScale = canvas.GetScale()-(e.deltaY/100)*ds;
-        if(newScale >1)
-            canvas.SetScale(newScale);
-    });
-
-    function handlerCanvasMouseDown(e:MouseEvent){
-        if(mouseDown != -1) return;
-        mouseDownX = getCanvasMouseX(e,canvas);
-        mouseDownY = getCanvasMouseY(e,canvas);
-        mouseDown = e.button;
-
-        let mousePositionObjectX = canvasProperties.TransformCanvasToObjectX(mouseDownX);
-        let mousePositionObjectY = canvasProperties.TransformCanvasToObjectY(mouseDownY);
-
-        particle = particleSystem.FindClosestParticle(mousePositionObjectX,mousePositionObjectY);
-        if(particleSystem.GetDistanceToParticle(particle,mousePositionObjectX,mousePositionObjectY) > 50/canvas.GetScale())
-            particle = mouseParticle;
-        //console.log(particle.position.Subtract(mousePositionObject).Length());
-        
-    }
-
-    function handlerCanvasMouseUp(e:MouseEvent){
-        if(e.button != mouseDown) return;
-        switch(e.button){
-            case 0:
-                mouseSpring.pB = mouseParticle;
-                particle = mouseParticle;
-                break;
-            case 2:
-                if(previousOffsetX == canvas.GetOffsetXPx() && previousOffsetY == canvas.GetOffsetYPx()){
-                    canvas.SetOffsetPx(0,0);
-                }
-                previousOffsetX = canvas.GetOffsetXPx();
-                previousOffsetY = canvas.GetOffsetYPx();
-                break;
-        }
-        mouseDown = -1;
-    }
-
-    function handlerCanvasMouseDrag(e:MouseEvent){
-        if(mouseDown == -1) return;
-
-        let movementVectorX = getCanvasMouseX(e,canvas) - mouseDownX;
-        let movementVectorY = -getCanvasMouseY(e,canvas) + mouseDownY;
-
-        switch(mouseDown){
-            case 0:
-                mouseParticle.x = canvasProperties.TransformCanvasToObjectX(getCanvasMouseX(e,canvas));
-                mouseParticle.y = canvasProperties.TransformCanvasToObjectY(getCanvasMouseY(e,canvas));
-                mouseSpring.pB = particle;
-                //particle.LockPosition();
-                
-            break;
-            case 2:
-                canvas.SetOffsetPx(movementVectorX + previousOffsetX, movementVectorY + previousOffsetY);
-            break;
-        }
-        if(mouseDown == 1){}
-    }
-}
-
-function getCanvasMouseX(e:MouseEvent, canvasObject:Canvas):number{
-    let boundingClient = canvasObject.GetBoundingClientRect();
-    return (e.clientX-boundingClient.left)*(canvasObject.GetWidthPx() / boundingClient.width);
-}
-function getCanvasMouseY(e:MouseEvent, canvasObject:Canvas):number{
-    let boundingClient = canvasObject.GetBoundingClientRect();
-    return (e.clientY-boundingClient.top)*(canvasObject.GetHeightPx() / boundingClient.height);
 }
 
 function element(tag:string){
