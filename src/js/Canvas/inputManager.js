@@ -29,11 +29,19 @@ class InputManager {
         canvasElement.addEventListener("mouseup", e => this.handlerCanvasMouseUp(e));
         canvasElement.addEventListener("mousemove", e => this.handlerCanvasMouseMove(e));
         document.addEventListener("wheel", e => {
-            //console.log(-e.deltaY/100);
+            this.mouseX = this.getCanvasMouseX(e);
+            this.mouseY = this.getCanvasMouseY(e);
+            let mousePositionObjectX = this.canvasProperties.TransformCanvasToObjectX(this.mouseX);
+            let mousePositionObjectY = this.canvasProperties.TransformCanvasToObjectY(this.mouseY);
             let ds = 0.04 * (canvas.GetScale() - 1) + 1;
             let newScale = canvas.GetScale() - (e.deltaY / 100) * ds;
-            if (newScale > 1) {
+            if (newScale > 1 && newScale < 10000) {
+                //BUG IF scroll too fast - I think that it's the event getting called twice before finishing.
                 canvas.SetScale(newScale);
+                canvas.UpdateCanvasProperties();
+                let newMousePositionObjectX = this.canvasProperties.TransformCanvasToObjectX(this.mouseX);
+                let newMousePositionObjectY = this.canvasProperties.TransformCanvasToObjectY(this.mouseY);
+                canvas.SetOffsetScaled(canvas.GetOffsetXScaled() - mousePositionObjectX + newMousePositionObjectX, canvas.GetOffsetYScaled() - mousePositionObjectY + newMousePositionObjectY);
             }
         });
     }
@@ -71,7 +79,8 @@ class InputManager {
         }
     }
     handlerCanvasMouseUp(e) {
-        this.releaseParticle();
+        if (e.buttons != 1)
+            this.releaseParticle();
     }
     handlerCanvasMouseMove(e) {
         if (e.buttons == 0) {

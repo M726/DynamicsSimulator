@@ -1,20 +1,24 @@
 window.addEventListener('load', function () {
     init();
 });
-let canvasEl = element("canvas");
+let canvasEl;
 let canvas;
 let particleSystem;
 let canvasRenderAPI;
 let inputManager;
 function init() {
-    particleSystem = new ParticleSystem();
+    canvasEl = element("canvas");
     canvas = new Canvas(canvasEl);
+    canvas.SetDimensionsPx(window.innerHeight, window.innerWidth);
+    canvas.SetScale(60);
+    window.addEventListener("resize", e => canvas.SetDimensionsPx(window.innerHeight, window.innerWidth));
+    particleSystem = new ParticleSystem();
     canvasRenderAPI = new CanvasRenderAPI(canvas, particleSystem);
     inputManager = new InputManager(canvasEl, canvas, particleSystem);
-    canvas.SetDimensionsPx(window.innerHeight, window.innerWidth);
-    window.addEventListener("resize", e => canvas.SetDimensionsPx(window.innerHeight, window.innerWidth));
-    canvas.SetScale(60);
     setupScene();
+    start();
+}
+function start() {
     let timerDtSeconds = 0.004;
     let dt = 0.0005;
     tick();

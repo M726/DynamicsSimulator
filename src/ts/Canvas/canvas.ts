@@ -36,7 +36,7 @@ class Canvas{
         this.canvasProperties.height = this.GetHeightScaled();
         this.canvasProperties.offsetX = this.GetOffsetXScaled();
         this.canvasProperties.offsetY = this.GetOffsetYScaled();
-        this.canvasProperties.scale = this.scale
+        this.canvasProperties.scale = this.scale;
     }
     public GetCanvasProperties():CanvasProperties{
         return this.canvasProperties;
