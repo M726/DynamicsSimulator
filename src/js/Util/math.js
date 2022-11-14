@@ -10,4 +10,10 @@ function distanceBetweenPoints(x1, y1, x2, y2) {
 function distance(x, y) {
     return Math.sqrt(x * x + y * y);
 }
+function rand() {
+    return Math.random();
+}
+function randRange(min, max) {
+    return Math.random() * (max - min) + min;
+}
 //# sourceMappingURL=math.js.map

@@ -111,3 +111,28 @@ class Rope extends NAryForce{
         this.pB.AddForce(-magnitude * dx,-magnitude * dy);
     }
 }
+
+class GravityN extends NAryForce{
+    pA:Particle;
+    pB:Particle;
+    g:number = 6.6743e-11;
+
+
+    constructor(pA: Particle, pB: Particle, gravitationalConstant?:number){
+        super();
+        this.pA = pA;
+        this.pB = pB;
+        
+        if(gravitationalConstant !== undefined) this.g = gravitationalConstant;
+    }
+    forceApplierFunction(): void {
+        let dx = this.pA.x-this.pB.x;
+        let dy = this.pA.y-this.pB.y;
+        let dPos = Math.sqrt(dx*dx+dy*dy);
+        let r = distanceParticles(this.pA, this.pB);
+        let force = this.g * this.pA.massKg * this.pB.massKg / (r*r*dPos);
+        
+        this.pA.AddForce(-force * dx,-force * dy);
+        this.pB.AddForce(force * dx,force * dy);
+    }
+}

@@ -1,18 +1,26 @@
-window.addEventListener('load', function () {
-    init();
-});
 let canvasEl:HTMLElement;
 let canvas:Canvas;
 let particleSystem:ParticleSystem;
 let canvasRenderAPI:CanvasRenderAPI;
 let inputManager:InputManager;
 
+
+let timerDtSeconds = 0.004;
+let dtSeconds = 0.001;
+let timeScale = 1;
+let timerInterval;
+
+
+window.addEventListener('load', function () {
+    init();
+});
+
 function init(){
     canvasEl = element("canvas");
 
     canvas = new Canvas(<HTMLCanvasElement> canvasEl);
     canvas.SetDimensionsPx(window.innerHeight,window.innerWidth);
-    canvas.SetScale(60);
+    canvas.SetScale(10);
     window.addEventListener("resize", e=>canvas.SetDimensionsPx(window.innerHeight,window.innerWidth));
 
     particleSystem = new ParticleSystem();
@@ -24,24 +32,64 @@ function init(){
 
 }
 function start(){
-    let timerDtSeconds = 0.004;
-    let dt = 0.0005;
-    
     tick();
     function tick():void{
         //runs every 4 ms
-        for(let i = 0; i < timerDtSeconds/dt; i++){
-            particleSystem.RunTimeStep(dt);
+        for(let i = 0; i < timerDtSeconds/(dtSeconds); i++){
+            particleSystem.RunTimeStep(dtSeconds/timeScale);
         }
     }
     function updateFrame():void{
         canvasRenderAPI.UpdateData();
     }
-    setInterval(tick,timerDtSeconds*1000);//4ms timer
+    timerInterval = setInterval(tick,timerDtSeconds*1000);//4ms timer
     setInterval(updateFrame,1000/60);
+}
+function stop(){
+    clearInterval(timerInterval);
 }
 
 function setupScene(){
+    let particles:Particle[] = [];
+    let iMax = 200;
+    let x = 10;
+    let u = 0.01;
+    for(let i = 0; i < iMax; i++){
+        particles[i] = new Particle(
+            randRange(-x,x),
+            randRange(-x,x),
+            randRange(-u,u),
+            randRange(-u,u),
+            Math.pow(randRange(0.1,1),20)*randRange(1,50),1);
+        particleSystem.AddParticle(particles[i]);
+    }
+    for(let i = 0; i < iMax-1; i++){
+        for(let j = i+1; j < iMax; j++){
+            particleSystem.AddForce(new GravityN(particles[i],particles[j],1e-6));
+        }
+    }
+}
+
+function setupSceneSpringPendulum(){
+    let particles:Particle[] = [];
+    let iMax = 3;
+    let dx = 0.5;
+    let k = 100;
+    for(let i = 0; i < iMax; i++){
+        particles[i] = new Particle(0,-i*dx,0,0,0.01,0.05);
+        particleSystem.AddParticle(particles[i]);
+    }
+    for(let i = 0; i < iMax-1; i++){
+        particleSystem.AddForce(new Spring(particles[i],particles[i+1],k,dx));
+    }
+    particles[0].LockPosition();
+    particleSystem.AddForce(new Gravity(9.8));
+    particleSystem.AddForce(new ViscousDrag(0.001));
+}
+
+
+//////NET CREATION
+function setupSceneNet(){
     let iMax = 20;
     let jMax = 30;
     let kConst = 100;
@@ -82,23 +130,4 @@ function setupScene(){
     ///////Add Forces to System
     particleSystem.AddForce(new Gravity(9.8));
     particleSystem.AddForce(new ViscousDrag(0.01));
-}
-
-function element(tag:string){
-    return document.getElementById(tag);
-}
-
-function rand(){
-    return Math.random();
-}
-function randRange(min:number,max:number){
-    return Math.random()*(max-min)+min;
-}
-
-function getMs():number{
-    return performance.now();
-}
-
-function typeOf(e:any):string{
-    return e.constructor.name;
 }
