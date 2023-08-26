@@ -19,7 +19,7 @@ function init() {
     particleSystem = new ParticleSystem();
     canvasRenderAPI = new CanvasRenderAPI(canvas, particleSystem);
     inputManager = new InputManager(canvasEl, canvas, particleSystem);
-    setupScene();
+    setupSceneNetLarge();
     start();
 }
 function start() {
@@ -72,42 +72,66 @@ function setupSceneSpringPendulum() {
 }
 //////NET CREATION
 function setupSceneNet() {
-    let iMax = 20;
-    let jMax = 30;
-    let kConst = 100;
+    let iMax = 400;
+    let jMax = 10;
+    let kConst = 3000;
     let dx = 0.1;
     let particles = [];
     for (let i = 0; i < iMax; i++) {
         particles[i] = [];
         for (let j = 0; j < jMax; j++) {
-            particles[i][j] = new Particle(i * dx, -j * dx, 0, 0, 0.01, 0.01);
+            particles[i][j] = new Particle(i * dx - 0.5 * dx * iMax, -j * dx, 0, 0, 0.01, 0.1);
             particleSystem.AddParticle(particles[i][j]);
         }
     }
     for (let i = 1; i < iMax - 1; i++) {
-        for (let j = 1; j < jMax - 1; j++) {
-            particleSystem.AddForce(new Rope(particles[i][j], particles[i][j + 1], kConst, dx));
-            particleSystem.AddForce(new Rope(particles[i][j], particles[i][j - 1], kConst, dx));
-            particleSystem.AddForce(new Rope(particles[i][j], particles[i + 1][j], kConst, dx));
-            particleSystem.AddForce(new Rope(particles[i][j], particles[i - 1][j], kConst, dx));
-        }
-    }
-    for (let i = 1; i < iMax - 1; i++) {
-        particleSystem.AddForce(new Rope(particles[i][0], particles[i - 1][0], kConst, dx));
-        particleSystem.AddForce(new Rope(particles[i][0], particles[i + 1][0], kConst, dx));
-        particleSystem.AddForce(new Rope(particles[i][jMax - 1], particles[i - 1][jMax - 1], kConst, dx));
-        particleSystem.AddForce(new Rope(particles[i][jMax - 1], particles[i + 1][jMax - 1], kConst, dx));
-    }
-    for (let j = 1; j < jMax - 1; j++) {
-        particleSystem.AddForce(new Rope(particles[0][j], particles[0][j - 1], kConst, dx));
-        particleSystem.AddForce(new Rope(particles[0][j], particles[0][j + 1], kConst, dx));
-        particleSystem.AddForce(new Rope(particles[iMax - 1][j], particles[iMax - 1][j - 1], kConst, dx));
-        particleSystem.AddForce(new Rope(particles[iMax - 1][j], particles[iMax - 1][j + 1], kConst, dx));
+        particleSystem.AddForce(new Rope(particles[i][0], particles[i - 1][0], kConst, dx / 2));
+        particleSystem.AddForce(new Rope(particles[i][0], particles[i + 1][0], kConst, dx / 2));
+        particleSystem.AddForce(new Rope(particles[i][jMax - 1], particles[i - 1][jMax - 1], kConst, dx / 2));
+        particleSystem.AddForce(new Rope(particles[i][jMax - 1], particles[i + 1][jMax - 1], kConst, dx / 2));
     }
     particles[0][0].LockPosition();
     particles[iMax - 1][0].LockPosition();
     ///////Add Forces to System
     particleSystem.AddForce(new Gravity(9.8));
     particleSystem.AddForce(new ViscousDrag(0.01));
+}
+function setupSceneNetLarge() {
+    let iMax = 50;
+    let jMax = 50;
+    let kConst = 30;
+    let particles = [];
+    let width = canvas.GetWidthScaled();
+    let height = canvas.GetHeightScaled();
+    let dx = 1 / (iMax - 1) * width;
+    //Create Free Particles
+    for (let i = 0; i < iMax; i++) {
+        particles[i] = [];
+        for (let j = 0; j < jMax; j++) {
+            particles[i][j] = new Particle(-width / 2 + i / (iMax - 1) * width, -height / 2 + j / (jMax - 1) * height, 0, 0, dx, 0.1);
+            particleSystem.AddParticle(particles[i][j]);
+        }
+    }
+    for (let i = 1; i < iMax - 1; i++) {
+        for (let j = 1; j < jMax - 1; j++) {
+            let d = 0.01;
+            let b = 28;
+            particleSystem.AddForce(new RopeBreakable(particles[i][j], particles[i - 1][j], kConst, dx, d, b));
+            particleSystem.AddForce(new RopeBreakable(particles[i][j], particles[i + 1][j], kConst, dx, d, b));
+            particleSystem.AddForce(new RopeBreakable(particles[i][j], particles[i][j - 1], kConst, dx, d, b));
+            particleSystem.AddForce(new RopeBreakable(particles[i][j], particles[i][j + 1], kConst, dx, d, b));
+        }
+    }
+    for (let i = 0; i < iMax; i++) {
+        particles[i][0].LockPosition();
+        particles[i][jMax - 1].LockPosition();
+    }
+    for (let i = 0; i < jMax; i++) {
+        particles[0][i].LockPosition();
+        particles[iMax - 1][i].LockPosition();
+    }
+    ///////Add Forces to System
+    //particleSystem.AddForce(new Gravity(9.8));
+    //particleSystem.AddForce(new ViscousDrag(1));
 }
 //# sourceMappingURL=main.js.map

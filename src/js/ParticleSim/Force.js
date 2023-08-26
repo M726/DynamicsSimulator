@@ -85,6 +85,41 @@ class Rope extends NAryForce {
         this.pB.AddForce(-magnitude * dx, -magnitude * dy);
     }
 }
+class RopeBreakable extends NAryForce {
+    pA;
+    pB;
+    restLength;
+    kConst;
+    dConst;
+    maxForce;
+    constructor(pA, pB, kConstNewtonPerMeter, restLength, dampening, breakingForce) {
+        super();
+        this.pA = pA;
+        this.pB = pB;
+        this.restLength = restLength;
+        this.kConst = kConstNewtonPerMeter;
+        this.maxForce = breakingForce;
+        if (dampening !== undefined)
+            this.dConst = dampening;
+    }
+    forceApplierFunction() {
+        let dx = this.pA.x - this.pB.x;
+        let dy = this.pA.y - this.pB.y;
+        let dPos = Math.sqrt(dx * dx + dy * dy);
+        let magnitude = -(this.kConst * (dPos - this.restLength) + this.dConst * ((dot(this.pA.u - this.pB.u, this.pA.v - this.pB.v, dx, dy)) / dPos)) / dPos;
+        if (dPos == 0) {
+            magnitude = 0;
+        }
+        if (magnitude > 0)
+            return;
+        this.pA.AddForce(magnitude * dx, magnitude * dy);
+        this.pB.AddForce(-magnitude * dx, -magnitude * dy);
+        if (Math.abs(magnitude) > this.maxForce) {
+            this.kConst = 0;
+            this.dConst = 0;
+        }
+    }
+}
 class GravityN extends NAryForce {
     pA;
     pB;

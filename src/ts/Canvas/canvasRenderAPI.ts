@@ -32,6 +32,11 @@ class CanvasRenderAPI{
                         let r = <Rope>force;
                         data.push(new CanvasLine(r.pA.x,r.pA.y,r.pB.x,r.pB.y));
                         break;
+                        
+                    case "RopeBreakable":
+                        let rb = <RopeBreakable>force;
+                        data.push(new CanvasLine(rb.pA.x,rb.pA.y,rb.pB.x,rb.pB.y));
+                        break;
                 }
             });
         }
