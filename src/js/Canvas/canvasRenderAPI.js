@@ -29,13 +29,13 @@ class CanvasRenderAPI {
                         data.push(new CanvasLine(r.pA.x, r.pA.y, r.pB.x, r.pB.y));
                         break;
                     case "RopeBreakable":
-                        let rb = force;
-                        data.push(new CanvasLine(rb.pA.x, rb.pA.y, rb.pB.x, rb.pB.y));
+                        //let rb = <RopeBreakable>force;
+                        //data.push(new CanvasLine(rb.pA.x,rb.pA.y,rb.pB.x,rb.pB.y));
                         break;
                 }
             });
         }
-        data.push(new CanvasText((Math.round(this.ps.clock * 100) / 100).toString(), 0, 0));
+        //data.push(new CanvasText((Math.round(this.ps.clock*100)/100).toString(),0,0));
         this.canvas.SetParticleData(data);
     }
 }

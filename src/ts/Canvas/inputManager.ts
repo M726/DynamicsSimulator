@@ -35,6 +35,11 @@ class InputManager{
         canvasElement.addEventListener("mousedown", e => this.handlerCanvasMouseDown(e));
         canvasElement.addEventListener("mouseup", e => this.handlerCanvasMouseUp(e));
         canvasElement.addEventListener("mousemove", e => this.handlerCanvasMouseMove(e));
+
+        canvasElement.addEventListener("touchstart", e=> this.handlerCanvasTouchStart(e));
+        canvasElement.addEventListener("touchend", e=> this.handlerCanvasTouchEnd(e));
+        canvasElement.addEventListener("touchmove", e=> this.handlerCanvasTouchMove(e));
+
         document.addEventListener("wheel", e => {
             this.mouseX = this.getCanvasMouseX(e);
             this.mouseY = this.getCanvasMouseY(e);
@@ -70,13 +75,13 @@ class InputManager{
 
     handlerCanvasMouseDown(e:MouseEvent){
 
-        if(e.button == 2 && this.mouseMode == MouseMode.DragParticle){
+        if(e.button == 2 && this.mouseMode == MouseMode.DragParticle){ //Right click while dragging particle
             if(this.mouseSpring.pB.IsLocked()){
                 this.mouseSpring.pB.UnlockPosition();
             }else{
                 this.mouseSpring.pB.LockPosition();
             }
-        }else if(e.button == 0 && this.mouseMode == MouseMode.None) {
+        }else if(e.button == 0 && this.mouseMode == MouseMode.None) { //Left click while not doing anything
             this.moveMouseSpring(e);
             this.mouseX = this.getCanvasMouseX(e);
             this.mouseY = this.getCanvasMouseY(e);
@@ -85,7 +90,7 @@ class InputManager{
             let mousePositionObjectY = this.canvasProperties.TransformCanvasToObjectY(this.mouseY);
     
             let particle = particleSystem.FindClosestParticle(mousePositionObjectX,mousePositionObjectY);
-            if(particleSystem.GetDistanceToParticle(particle,mousePositionObjectX,mousePositionObjectY) * this.canvas.GetScale() < 50){
+            if(particleSystem.GetDistanceToParticle(particle,mousePositionObjectX,mousePositionObjectY) * this.canvas.GetScale() < 50){ //Decide mouse mode
                 this.grabParticle(particle);
                 this.mouseMode = MouseMode.DragParticle;
             }else{
@@ -137,7 +142,70 @@ class InputManager{
         this.mouseSpring.pB = this.mouseParticle;
         this.mouseMode = MouseMode.None;
     }
-  
+    
+
+    getCanvasTouchX(e:TouchEvent):number{
+        let boundingClient = this.canvas.GetBoundingClientRect();
+        return (e.touches[0].clientX-boundingClient.left)*(this.canvas.GetWidthPx() / boundingClient.width);
+    }
+    getCanvasTouchY(e:TouchEvent):number{
+        let boundingClient = this.canvas.GetBoundingClientRect();
+        return (e.touches[0].clientY-boundingClient.top)*(this.canvas.GetHeightPx() / boundingClient.height);
+    }
+    moveTouchSpring(e:TouchEvent){
+        this.mouseSpring.pA.x = this.canvasProperties.TransformCanvasToObjectX(this.getCanvasTouchX(e));
+        this.mouseSpring.pA.y = this.canvasProperties.TransformCanvasToObjectY(this.getCanvasTouchY(e));
+    }
+    handlerCanvasTouchStart(e:TouchEvent){
+        e.preventDefault();
+        console.log(e);
+        if(this.mouseMode == MouseMode.None) { //Touch while not doing anything
+            this.moveTouchSpring(e);
+            this.mouseX = this.getCanvasTouchX(e);
+            this.mouseY = this.getCanvasTouchY(e);
+      
+            let mousePositionObjectX = this.canvasProperties.TransformCanvasToObjectX(this.mouseX);
+            let mousePositionObjectY = this.canvasProperties.TransformCanvasToObjectY(this.mouseY);
+    
+            let particle = particleSystem.FindClosestParticle(mousePositionObjectX,mousePositionObjectY);
+            if(particleSystem.GetDistanceToParticle(particle,mousePositionObjectX,mousePositionObjectY) * this.canvas.GetScale() < 50){ //Decide mouse mode
+                this.grabParticle(particle);
+                this.mouseMode = MouseMode.DragParticle;
+            }else{
+                this.mouseMode = MouseMode.DragCanvas;
+            }
+        }
+    }
+    handlerCanvasTouchEnd(e:TouchEvent){
+        this.releaseParticle();
+    }
+    handlerCanvasTouchMove(e:TouchEvent){
+        if(e.touches.length == 0){
+            this.releaseParticle()
+            return;
+        }
+        switch(this.mouseMode){
+            case MouseMode.DragParticle:
+                this.moveTouchSpring(e);
+                break;
+            case MouseMode.DragCanvas:
+                let nX = this.getCanvasTouchX(e);
+                let nY = this.getCanvasTouchY(e);
+
+                let movementVectorX = nX - this.mouseX;
+                let movementVectorY = -nY + this.mouseY;
+
+                this.mouseX = nX;
+                this.mouseY = nY;
+
+                //console.log(movementVectorX + ", " + movementVectorY);
+                canvas.SetOffsetPx(
+                    movementVectorX + this.canvas.GetOffsetXPx(), 
+                    movementVectorY + this.canvas.GetOffsetYPx());
+                break;
+        }
+        
+    }
   
   }
   

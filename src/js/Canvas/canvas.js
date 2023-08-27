@@ -3,6 +3,7 @@ class Canvas {
     ctx;
     canvasProperties;
     objects = [];
+    objectsUI = [];
     color = "#FFFFFF";
     drawObjectUI = true;
     drawObjects = true;
@@ -10,8 +11,7 @@ class Canvas {
     scale = 1;
     offsetX = 0;
     offsetY = 0;
-    frameCounter = 1;
-    textObject = new CanvasText("", 10, 25);
+    FrameNumber = 1;
     constructor(canvas) {
         this.c = canvas;
         this.ctx = canvas.getContext("2d");
@@ -46,34 +46,37 @@ class Canvas {
     Render() {
         this.UpdateCanvasProperties();
         this.Clear();
-        if (this.drawObjectUI) {
-            this.DrawObjectUI();
-        }
         if (this.drawObjects) {
             this.DrawObjects();
         }
         if (this.drawUI) {
             this.DrawUI();
         }
-        this.frameCounter++;
+        this.FrameNumber++;
     }
     Clear() {
         this.DrawBackground();
     }
-    DrawObjectUI() {
-    }
     DrawUI() {
-        this.textObject.SetText("Frame " + this.frameCounter);
-        this.textObject.RenderUI(this.canvasProperties);
+        this.objectsUI.forEach(e => {
+            this.DrawCanvasObjectUI(e);
+        });
     }
     DrawObjects() {
         this.objects.forEach(e => {
             this.DrawCanvasObject(e);
         });
     }
+    DrawCanvasObjectUI(object) {
+        this.Path();
+        object.RenderUI(this.canvasProperties);
+        this.ctx.strokeStyle = "black";
+        this.Stroke();
+    }
     DrawCanvasObject(object) {
         this.Path();
         object.RenderObject(this.canvasProperties);
+        this.ctx.strokeStyle = "black";
         this.Stroke();
     }
     Path() {
@@ -96,7 +99,7 @@ class Canvas {
         return this.scale;
     }
     GetFrameNumber() {
-        return this.frameCounter;
+        return this.FrameNumber;
     }
     SetDimensionsPx(height, width) {
         this.SetHeightPx(height);

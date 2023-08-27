@@ -5,8 +5,8 @@ let canvasRenderAPI:CanvasRenderAPI;
 let inputManager:InputManager;
 
 
-let timerDtSeconds = 0.004;
-let dtSeconds = 0.001;
+let timerDtSeconds = 15/1000;
+let dtSeconds = timerDtSeconds/2;
 let timeScale = 1;
 let timerInterval;
  
@@ -31,14 +31,14 @@ function init(){
     start();
  
 }
-function start(){
-    tick();
-    function tick():void{
-        //runs every 4 ms
-        for(let i = 0; i < timerDtSeconds/(dtSeconds); i++){
-            particleSystem.RunTimeStep(dtSeconds/timeScale);
-        }
+function tick():void{
+    //runs every 4 ms
+    for(let i = 0; i < timerDtSeconds/(dtSeconds); i++){
+        particleSystem.RunTimeStep(dtSeconds/timeScale);
     }
+}
+function start(){
+    //tick();
     function updateFrame():void{
         canvasRenderAPI.UpdateData();
     }
@@ -119,8 +119,8 @@ function setupSceneNet(){
 }
 
 function setupSceneNetLarge(){
-    let iMax = 50;
-    let jMax = 50;
+    let iMax = Math.round(canvas.GetWidthPx()/15);
+    let jMax = Math.round(canvas.GetHeightPx()/15);
     let kConst = 30;
     let particles:Particle[][] = [];
 
@@ -133,7 +133,7 @@ function setupSceneNetLarge(){
     for(let i = 0; i < iMax;i++){
         particles[i] = [];
         for(let j = 0; j < jMax;j++){
-            particles[i][j] = new Particle(-width/2+i/(iMax-1) * width,-height/2+j/(jMax-1) * height,0,0,dx,0.1);
+            particles[i][j] = new Particle(-width/2+i/(iMax-1) * width,-height/2+j/(jMax-1) * height,0,0,0.1,0.1);
             particleSystem.AddParticle(particles[i][j]);
         }
     }
@@ -162,5 +162,5 @@ function setupSceneNetLarge(){
     
     ///////Add Forces to System
     //particleSystem.AddForce(new Gravity(9.8));
-    //particleSystem.AddForce(new ViscousDrag(1));
+    particleSystem.AddForce(new ViscousDrag(0.05));
 }

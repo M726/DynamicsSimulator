@@ -5,6 +5,7 @@ class Canvas{
     private canvasProperties : CanvasProperties;
 
     private objects: Array<CanvasObject> = [];
+    private objectsUI: Array<CanvasObject> = [];
 
     private color:string = "#FFFFFF";
     private drawObjectUI:boolean = true;
@@ -14,9 +15,7 @@ class Canvas{
     private offsetX:number = 0;
     private offsetY:number = 0;
 
-    private frameCounter:number = 1;
-
-    private textObject = new CanvasText("",10,25);
+    public FrameNumber:number = 1;
 
     public constructor(canvas:HTMLCanvasElement){
         this.c = canvas;
@@ -58,9 +57,6 @@ class Canvas{
         this.UpdateCanvasProperties();
 
         this.Clear();
-        if(this.drawObjectUI){
-            this.DrawObjectUI();
-        }
         if(this.drawObjects){
             this.DrawObjects();
         }
@@ -69,30 +65,35 @@ class Canvas{
         }
 
 
-        this.frameCounter++;
+        this.FrameNumber++;
     }
 
     public Clear():void{
         this.DrawBackground();
     }
 
-    private DrawObjectUI(){
-
-    }
-
     private DrawUI(){
-        this.textObject.SetText("Frame " + this.frameCounter);
-        this.textObject.RenderUI(this.canvasProperties);
+        this.objectsUI.forEach(e=>{
+            this.DrawCanvasObjectUI(e);
+        })
     }
     private DrawObjects(){
         this.objects.forEach(e=>{
-            this.DrawCanvasObject(e);
+            this.DrawCanvasObject(e); 
         });
+    }
+
+    public DrawCanvasObjectUI(object:CanvasObject){
+        this.Path();
+        object.RenderUI(this.canvasProperties);
+        this.ctx.strokeStyle = "black";
+        this.Stroke();
     }
 
     public DrawCanvasObject(object:CanvasObject){
         this.Path();
         object.RenderObject(this.canvasProperties);
+        this.ctx.strokeStyle = "black";
         this.Stroke();
     }
 
@@ -118,7 +119,7 @@ class Canvas{
         return this.scale;
     }
     public GetFrameNumber():number{
-        return this.frameCounter;
+        return this.FrameNumber;
     }
 
     public SetDimensionsPx(height: number, width: number) {
