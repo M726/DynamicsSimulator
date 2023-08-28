@@ -46,12 +46,19 @@ class Particle {
 }
 class ParticleSystem {
     dimension = 2; //2D
+    phaseSpaceDimension = 0;
     particles = [];
     forces = [];
     clock = 0;
     solver = new ODESolverRK4();
+    stateVector = [];
+    derivativeVector = [];
     AddParticle(particle) {
         this.particles.push(particle);
+        //2*n*dimension
+        this.phaseSpaceDimension = 2 * this.dimension * this.particles.length;
+        this.stateVector = new Array(this.phaseSpaceDimension);
+        this.derivativeVector = new Array(this.phaseSpaceDimension);
     }
     GetParticles() {
         return this.particles;
@@ -84,7 +91,7 @@ class ParticleSystem {
     }
     ComputeForces() {
         this.forces.forEach(e => {
-            e.ApplyForce(this);
+            e.ApplyForce();
         });
     }
     ComputeConstraintForces() {
@@ -99,19 +106,14 @@ class ParticleSystem {
             }
         }
     }
-    GetPhaseSpaceDimension() {
-        //2*n*dimension
-        return 4 * this.particles.length;
-    }
     GetStateVector() {
-        let r = new Array(this.GetPhaseSpaceDimension());
         for (let i = 0; i < this.particles.length; i++) {
-            r[4 * i] = this.particles[i].x;
-            r[4 * i + 1] = this.particles[i].y;
-            r[4 * i + 2] = this.particles[i].u;
-            r[4 * i + 3] = this.particles[i].v;
+            this.stateVector[4 * i] = this.particles[i].x;
+            this.stateVector[4 * i + 1] = this.particles[i].y;
+            this.stateVector[4 * i + 2] = this.particles[i].u;
+            this.stateVector[4 * i + 3] = this.particles[i].v;
         }
-        return r;
+        return this.stateVector;
     }
     SetStateVector(r) {
         for (let i = 0; i < this.particles.length; i++) {
@@ -126,14 +128,13 @@ class ParticleSystem {
     GetParticleDerivatives() {
         this.ClearForces();
         this.ComputeForces();
-        let r = new Array(this.GetPhaseSpaceDimension());
         for (let i = 0; i < this.particles.length; i++) {
-            r[4 * i] = this.particles[i].u;
-            r[4 * i + 1] = this.particles[i].v;
-            r[4 * i + 2] = this.particles[i].forceX / this.particles[i].massKg;
-            r[4 * i + 3] = this.particles[i].forceY / this.particles[i].massKg;
+            this.derivativeVector[4 * i] = this.particles[i].u;
+            this.derivativeVector[4 * i + 1] = this.particles[i].v;
+            this.derivativeVector[4 * i + 2] = this.particles[i].forceX / this.particles[i].massKg;
+            this.derivativeVector[4 * i + 3] = this.particles[i].forceY / this.particles[i].massKg;
         }
-        return r;
+        return this.derivativeVector;
     }
     AddVectors(a, b) {
         let result = new Array(a.length);
@@ -188,17 +189,22 @@ class ODESolverMidpoint {
     }
 }
 class ODESolverRK4 {
+    k1;
+    k2;
+    k3;
+    k4;
+    statev;
     Solve(ps, dt) {
-        let statev = ps.GetStateVector();
-        let k1 = ps.GetParticleDerivatives();
-        ps.SetStateVector(ps.AddVectors(statev, ps.ScaleVectors(k1, dt / 2)));
-        let k2 = ps.GetParticleDerivatives();
-        ps.SetStateVector(ps.AddVectors(statev, ps.ScaleVectors(k2, dt / 2)));
-        let k3 = ps.GetParticleDerivatives();
-        ps.SetStateVector(ps.AddVectors(statev, ps.ScaleVectors(k3, dt)));
-        let k4 = ps.GetParticleDerivatives();
+        this.statev = ps.GetStateVector();
+        this.k1 = ps.GetParticleDerivatives();
+        ps.SetStateVector(ps.AddVectors(this.statev, ps.ScaleVectors(this.k1, dt / 2)));
+        this.k2 = ps.GetParticleDerivatives();
+        ps.SetStateVector(ps.AddVectors(this.statev, ps.ScaleVectors(this.k2, dt / 2)));
+        this.k3 = ps.GetParticleDerivatives();
+        ps.SetStateVector(ps.AddVectors(this.statev, ps.ScaleVectors(this.k3, dt)));
+        this.k4 = ps.GetParticleDerivatives();
         //ps.SetStateVector(ps.AddVectors(statev,ps.ScaleVectors(k1,0.5)));
-        ps.SetStateVector(ps.AddVectors(statev, ps.ScaleVectors(ps.AddVectors4(k1, ps.ScaleVectors(k2, 2), ps.ScaleVectors(k3, 2), k4), dt / 6)));
+        ps.SetStateVector(ps.AddVectors(this.statev, ps.ScaleVectors(ps.AddVectors4(this.k1, ps.ScaleVectors(this.k2, 2), ps.ScaleVectors(this.k3, 2), this.k4), dt / 6)));
         //console.log(ps.AddVectorArray([k1, ps.ScaleVectors(k2,2), ps.ScaleVectors(k3,2), k4]));
     }
 }

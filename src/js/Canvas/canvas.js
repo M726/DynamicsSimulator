@@ -17,11 +17,6 @@ class Canvas {
         this.ctx = canvas.getContext("2d");
         this.canvasProperties = new CanvasProperties();
         this.canvasProperties.ctx = this.ctx;
-        this.RenderLoop();
-    }
-    RenderLoop() {
-        window.requestAnimationFrame(e => { this.RenderLoop(); });
-        this.Render();
     }
     UpdateCanvasProperties() {
         this.canvasProperties.width = this.GetWidthScaled();

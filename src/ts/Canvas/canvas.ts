@@ -22,12 +22,6 @@ class Canvas{
         this.ctx = canvas.getContext("2d");
         this.canvasProperties = new CanvasProperties();
         this.canvasProperties.ctx = this.ctx;
-
-        this.RenderLoop();
-    }
-    public RenderLoop(){
-        window.requestAnimationFrame(e=>{this.RenderLoop()});
-        this.Render();
     }
 
     public UpdateCanvasProperties(){

@@ -132,7 +132,6 @@ class InputManager {
     }
     handlerCanvasTouchStart(e) {
         e.preventDefault();
-        console.log(e);
         if (this.mouseMode == MouseMode.None) { //Touch while not doing anything
             this.moveTouchSpring(e);
             this.mouseX = this.getCanvasTouchX(e);
