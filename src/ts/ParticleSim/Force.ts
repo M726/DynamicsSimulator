@@ -120,6 +120,13 @@ class RopeBreakable extends NAryForce{
     dConst:number;
     maxForce:number;
 
+    
+    private dx = 0;
+    private dy = 0;
+    private dL = 0;
+    private magnitude = 0;
+    
+
     constructor(
             pA:Particle, 
             pB:Particle, 
@@ -136,16 +143,18 @@ class RopeBreakable extends NAryForce{
         if(dampening !== undefined) this.dConst = dampening;
     }
 
-    forceApplierFunction(): void {
-        let dx = this.pA.x-this.pB.x;
-        let dy = this.pA.y-this.pB.y;
-        let dPos = Math.sqrt(dx*dx+dy*dy);
-        let magnitude = -(this.kConst * (dPos-this.restLength) + this.dConst * ((dot(this.pA.u-this.pB.u,this.pA.v-this.pB.v,dx,dy))/dPos))/dPos;
-        if(dPos == 0){magnitude = 0;}
-        if(magnitude > 0) return;
-        this.pA.AddForce(magnitude * dx,magnitude * dy);
-        this.pB.AddForce(-magnitude * dx,-magnitude * dy);
-        if(Math.abs(magnitude) > this.maxForce){
+    forceApplierFunction(): void { 
+        //This get EXTREMELY SLOW if you assign variables within.
+        this.dx = this.pA.x-this.pB.x;
+        this.dy = this.pA.y-this.pB.y;
+        if(this.dx == 0 && this.dy == 0){return;}
+        this.dL = Math.sqrt(this.dx*this.dx+this.dy*this.dy);
+        this.magnitude = (this.kConst * (this.dL-this.restLength) + this.dConst * ((dot(this.pA.u-this.pB.u,this.pA.v-this.pB.v,this.dx,this.dy))/this.dL))/this.dL;
+        
+        if(this.magnitude <= 0) return; // Adds Rope behavior when length is smaller than restlength
+        this.pA.AddForce(-this.magnitude * this.dx,-this.magnitude * this.dy);
+        this.pB.AddForce(this.magnitude * this.dx,this.magnitude * this.dy);
+        if(this.magnitude > this.maxForce){
             this.kConst = 0;
             this.dConst = 0;
         }

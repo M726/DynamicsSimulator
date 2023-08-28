@@ -162,5 +162,5 @@ function setupSceneNetLarge(){
     
     ///////Add Forces to System
     //particleSystem.AddForce(new Gravity(9.8));
-    particleSystem.AddForce(new ViscousDrag(0.05));
+    //particleSystem.AddForce(new ViscousDrag(5));
 }
