@@ -73,6 +73,7 @@ class Canvas{
     }
     private DrawObjects(){
         this.objects.forEach(e=>{
+            //if(Math.random() > 0.9)
             this.DrawCanvasObject(e); 
         });
     }

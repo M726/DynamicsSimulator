@@ -28,8 +28,9 @@ function tick() {
     }
 }
 function setupSceneNetLarge() {
-    let iMax = Math.round(canvas.GetWidthPx() / 15);
-    let jMax = Math.round(canvas.GetHeightPx() / 15);
+    let f = 20;
+    let iMax = Math.round(canvas.GetWidthPx() / f);
+    let jMax = Math.round(canvas.GetHeightPx() / f);
     let kConst = 30;
     let particles = [];
     let width = canvas.GetWidthScaled();
@@ -43,10 +44,11 @@ function setupSceneNetLarge() {
             particleSystem.AddParticle(particles[i][j]);
         }
     }
-    let d = 0.01;
-    let b = 28;
+    let d = 0.001;
+    let b1 = kConst / dx;
     for (let i = 1; i < iMax - 1; i++) {
         for (let j = 1; j < jMax - 1; j++) {
+            let b = Math.random() * b1 + b1;
             particleSystem.AddForce(new RopeBreakable(particles[i][j], particles[i - 1][j], kConst, dx, d, b));
             particleSystem.AddForce(new RopeBreakable(particles[i][j], particles[i][j + 1], kConst, dx, d, b));
         }
@@ -54,11 +56,13 @@ function setupSceneNetLarge() {
     for (let i = 0; i < iMax; i++) {
         particles[i][0].LockPosition();
         particles[i][jMax - 1].LockPosition();
+        let b = Math.random() * b1 + b1;
         particleSystem.AddForce(new RopeBreakable(particles[i][0], particles[i][1], kConst, dx, d, b));
     }
     for (let i = 0; i < jMax; i++) {
         particles[0][i].LockPosition();
         particles[iMax - 1][i].LockPosition();
+        let b = Math.random() * b1 + b1;
         particleSystem.AddForce(new RopeBreakable(particles[iMax - 1][i], particles[iMax - 2][i], kConst, dx, d, b));
     }
     ///////Add Forces to System
